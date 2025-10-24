@@ -11,10 +11,26 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: '2rem',
-      screens: {
-        '2xl': '1400px',
+      padding: {
+        DEFAULT: '1rem', // Mobile
+        sm: '1.5rem', // Small tablet
+        lg: '2rem', // Desktop
       },
+      screens: {
+        sm: '640px', // Small tablet
+        md: '768px', // Tablet
+        lg: '1024px', // Desktop
+        xl: '1280px', // Large desktop
+        '2xl': '1400px', // Extra large
+      },
+    },
+    screens: {
+      xs: '475px', // Large phone
+      sm: '640px', // Small tablet
+      md: '768px', // Tablet
+      lg: '1024px', // Desktop
+      xl: '1280px', // Large desktop
+      '2xl': '1536px', // Extra large
     },
     extend: {
       colors: {
@@ -51,6 +67,37 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        // Thêm màu xanh lá custom
+        'green-primary': '#388E3C',
+        'green-light': '#4CAF50',
+        'green-dark': '#2E7D32',
+        'green-50': '#E8F5E8',
+        'green-100': '#C8E6C9',
+        'green-200': '#A5D6A7',
+      },
+      spacing: {
+        'safe-top': 'env(safe-area-inset-top)',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+        'safe-left': 'env(safe-area-inset-left)',
+        'safe-right': 'env(safe-area-inset-right)',
+      },
+      fontSize: {
+        xs: ['0.75rem', { lineHeight: '1rem' }],
+        sm: ['0.875rem', { lineHeight: '1.25rem' }],
+        base: ['1rem', { lineHeight: '1.5rem' }],
+        lg: ['1.125rem', { lineHeight: '1.75rem' }],
+        xl: ['1.25rem', { lineHeight: '1.75rem' }],
+        '2xl': ['1.5rem', { lineHeight: '2rem' }],
+        '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
+        '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
+        '5xl': ['3rem', { lineHeight: '1' }],
+      },
+      // Touch-friendly sizing
+      minHeight: {
+        touch: '44px', // Minimum touch target
+      },
+      minWidth: {
+        touch: '44px',
       },
       borderRadius: {
         lg: 'var(--radius)',
