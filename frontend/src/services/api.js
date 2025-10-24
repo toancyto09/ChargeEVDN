@@ -29,10 +29,17 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    // Chỉ redirect nếu có token (tức là user đang logged in)
+    // Nếu đang ở trang login/register thì không redirect
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      const token = localStorage.getItem('token');
+      const currentPath = window.location.pathname;
+
+      // Chỉ redirect nếu user đã có token và KHÔNG đang ở login/register
+      if (token && currentPath !== '/login' && currentPath !== '/register') {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -44,6 +51,10 @@ export const authAPI = {
   register: (userData) => api.post('/api/auth/register', userData),
   getProfile: () => api.get('/api/auth/me'),
   logout: () => api.post('/api/auth/logout'),
+  // Password reset with OTP
+  forgotPassword: (data) => api.post('/api/auth/forgot-password', data),
+  verifyOTP: (data) => api.post('/api/auth/verify-otp', data),
+  resetPassword: (data) => api.post('/api/auth/reset-password', data),
 };
 
 // Stations API
@@ -53,7 +64,8 @@ export const stationsAPI = {
   create: (stationData) => api.post('/api/stations', stationData),
   update: (id, stationData) => api.put(`/api/stations/${id}`, stationData),
   delete: (id) => api.delete(`/api/stations/${id}`),
-  search: (searchParams) => api.get('/api/stations/search', { params: searchParams }),
+  search: (searchParams) =>
+    api.get('/api/stations/search', { params: searchParams }),
 };
 
 // Bookings API

@@ -1,8 +1,16 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { Logo } from './components/Logo';
+import { Logo } from './components/common/Logo';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
+
+// Feature-based imports
+import LoginPage from './features/auth/pages/LoginPage';
+import RegisterPage from './features/auth/pages/RegisterPage';
+import ForgotPasswordPage from './features/auth/pages/ForgotPasswordPage';
+import ResetPasswordPage from './features/auth/pages/ResetPasswordPage';
+import GoogleCallbackPage from './features/auth/pages/GoogleCallbackPage';
+import DashboardPage from './features/dashboard/pages/DashboardPage';
 
 function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -50,9 +58,12 @@ function App() {
                 >
                   📅 Đặt chỗ
                 </a>
-                <button className="bg-primary text-primary-foreground px-3 py-2 lg:px-4 lg:py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors">
+                <Link
+                  to="/login"
+                  className="bg-primary text-primary-foreground px-3 py-2 lg:px-4 lg:py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+                >
                   Đăng nhập
-                </button>
+                </Link>
               </nav>
             </div>
 
@@ -78,9 +89,12 @@ function App() {
                   >
                     📱 Tải ứng dụng
                   </a>
-                  <button className="bg-primary text-primary-foreground px-4 py-3 rounded-md text-base font-medium hover:bg-primary/90 transition-colors w-full mt-2 btn-touch">
+                  <Link
+                    to="/login"
+                    className="bg-primary text-primary-foreground px-4 py-3 rounded-md text-base font-medium hover:bg-primary/90 transition-colors w-full mt-2 btn-touch text-center"
+                  >
                     Đăng nhập
-                  </button>
+                  </Link>
                 </nav>
               </div>
             )}
@@ -91,6 +105,15 @@ function App() {
         <main className="container mx-auto px-4 py-4 sm:py-6 lg:py-8">
           <Routes>
             <Route path="/" element={<WelcomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route
+              path="/auth/google/callback"
+              element={<GoogleCallbackPage />}
+            />
           </Routes>
         </main>
 
@@ -161,12 +184,18 @@ function WelcomePage() {
 
       {/* CTA Buttons - Mobile-first */}
       <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-sm sm:max-w-none px-4 sm:px-0">
-        <button className="bg-primary text-primary-foreground px-6 py-3 sm:py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-lg text-base sm:text-sm w-full sm:w-auto btn-touch">
+        <Link
+          to="/register"
+          className="bg-primary text-primary-foreground px-6 py-3 sm:py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors shadow-lg text-base sm:text-sm w-full sm:w-auto btn-touch text-center"
+        >
           🚗 Bắt đầu ngay
-        </button>
-        <button className="border border-primary text-primary px-6 py-3 sm:py-3 rounded-lg font-medium hover:bg-primary hover:text-primary-foreground transition-colors text-base sm:text-sm w-full sm:w-auto btn-touch">
-          📖 Tìm hiểu thêm
-        </button>
+        </Link>
+        <Link
+          to="/login"
+          className="border border-primary text-primary px-6 py-3 sm:py-3 rounded-lg font-medium hover:bg-primary hover:text-primary-foreground transition-colors text-base sm:text-sm w-full sm:w-auto btn-touch text-center"
+        >
+          🔑 Đăng nhập
+        </Link>
       </div>
 
       {/* Development Info - Mobile optimized */}

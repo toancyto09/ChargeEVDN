@@ -7,7 +7,7 @@ services:
     container_name: chargeevdn-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: charge_evdn
+      POSTGRES_DB: he_thong_sac_xe_dien
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
@@ -16,7 +16,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d he_thong_sac_xe_dien"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -37,37 +37,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-
-  # Backend API (Optional - for production)
-  # backend:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile
-  #   container_name: chargeevdn-backend
-  #   restart: unless-stopped
-  #   environment:
-  #     NODE_ENV: production
-  #     DATABASE_URL: postgresql://postgres:postgres@postgres:5432/charge_evdn
-  #     JWT_SECRET: your_production_jwt_secret
-  #   ports:
-  #     - "8080:8080"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   volumes:
-  #     - ./backend/uploads:/app/uploads
-
-  # Frontend (Optional - for production)
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   container_name: chargeevdn-frontend
-  #   restart: unless-stopped
-  #   ports:
-  #     - "3000:80"
-  #   depends_on:
-  #     - backend
 
 volumes:
   postgres_data:
