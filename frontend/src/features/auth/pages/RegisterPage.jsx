@@ -90,9 +90,8 @@ export default function RegisterPage() {
       const response = await authAPI.register(dataToSend);
 
       if (response.data.success) {
-        localStorage.setItem('token', response.data.data.token);
-        toast.success('Đăng ký thành công!');
-        navigate('/dashboard');
+        toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
+        navigate('/login');
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Đăng ký thất bại');

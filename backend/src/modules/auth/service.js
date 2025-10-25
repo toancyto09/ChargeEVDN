@@ -63,6 +63,13 @@ export const loginUser = async (email, mat_khau) => {
     throw new Error('Tài khoản đã bị khóa');
   }
 
+  // Check if user has password (not Google OAuth user)
+  if (!user.mat_khau) {
+    throw new Error(
+      'Tài khoản này đăng ký bằng Google. Vui lòng đăng nhập bằng Google.'
+    );
+  }
+
   // Verify password
   const isMatch = await bcrypt.compare(mat_khau, user.mat_khau);
 

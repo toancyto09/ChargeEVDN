@@ -43,7 +43,7 @@ export const configurePassport = () => {
 
             // Check if user exists
             let result = await pool.query(
-              'SELECT id_nguoi_dung, ho_ten, email, vai_tro, trang_thai, google_id FROM nguoi_dung WHERE email = $1',
+              'SELECT id_nguoi_dung, ho_ten, email, vai_tro, trang_thai, id_google FROM nguoi_dung WHERE email = $1',
               [email]
             );
 
@@ -54,12 +54,12 @@ export const configurePassport = () => {
               user = result.rows[0];
 
               // Update google_id if not set
-              if (!user.google_id) {
+              if (!user.id_google) {
                 await pool.query(
-                  'UPDATE nguoi_dung SET google_id = $1, avatar_url = $2 WHERE id_nguoi_dung = $3',
+                  'UPDATE nguoi_dung SET id_google = $1, url_anh_dai_dien = $2 WHERE id_nguoi_dung = $3',
                   [googleId, avatar, user.id_nguoi_dung]
                 );
-                user.google_id = googleId;
+                user.id_google = googleId;
               }
 
               // Check if account is locked
@@ -72,9 +72,9 @@ export const configurePassport = () => {
             } else {
               // Create new user
               const insertResult = await pool.query(
-                `INSERT INTO nguoi_dung (ho_ten, email, google_id, avatar_url, vai_tro, trang_thai) 
-               VALUES ($1, $2, $3, $4, $5, $6) 
-               RETURNING id_nguoi_dung, ho_ten, email, vai_tro, trang_thai, google_id`,
+                `INSERT INTO nguoi_dung (ho_ten, email, id_google, url_anh_dai_dien, vai_tro, trang_thai) 
+                VALUES ($1, $2, $3, $4, $5, $6) 
+                RETURNING id_nguoi_dung, ho_ten, email, vai_tro, trang_thai, id_google`,
                 [hoTen, email, googleId, avatar, 'user', 'hoat_dong']
               );
               user = insertResult.rows[0];

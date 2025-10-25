@@ -43,7 +43,7 @@ export const requestPasswordReset = async (email) => {
 
   // Save OTP to user record
   await pool.query(
-    'UPDATE nguoi_dung SET reset_otp = $1, reset_otp_expiry = $2 WHERE id_nguoi_dung = $3',
+    'UPDATE nguoi_dung SET ma_xac_thuc = $1, han_ma_xac_thuc = $2 WHERE id_nguoi_dung = $3',
     [otp, expiryTime, user.id_nguoi_dung]
   );
 
@@ -79,7 +79,7 @@ export const verifyOTP = async (email, otp) => {
 
   // Find user
   const result = await pool.query(
-    `SELECT id_nguoi_dung, ho_ten, email, trang_thai, reset_otp, reset_otp_expiry
+    `SELECT id_nguoi_dung, ho_ten, email, trang_thai, ma_xac_thuc, han_ma_xac_thuc
      FROM nguoi_dung 
      WHERE email = $1`,
     [email]
@@ -92,17 +92,17 @@ export const verifyOTP = async (email, otp) => {
   const user = result.rows[0];
 
   // Check if OTP exists
-  if (!user.reset_otp) {
+  if (!user.ma_xac_thuc) {
     throw new Error('Chưa yêu cầu reset password. Vui lòng yêu cầu mã OTP mới');
   }
 
   // Check if OTP matches
-  if (user.reset_otp !== otp) {
+  if (user.ma_xac_thuc !== otp) {
     throw new Error('Mã OTP không đúng');
   }
 
   // Check if OTP is expired
-  if (new Date() > new Date(user.reset_otp_expiry)) {
+  if (new Date() > new Date(user.han_ma_xac_thuc)) {
     throw new Error('Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới');
   }
 
@@ -140,7 +140,7 @@ export const resetPasswordWithOTP = async (email, otp, newPassword) => {
 
   // Update password and clear OTP
   await pool.query(
-    'UPDATE nguoi_dung SET mat_khau = $1, reset_otp = NULL, reset_otp_expiry = NULL WHERE id_nguoi_dung = $2',
+    'UPDATE nguoi_dung SET mat_khau = $1, ma_xac_thuc = NULL, han_ma_xac_thuc = NULL WHERE id_nguoi_dung = $2',
     [hashedPassword, userData.id_nguoi_dung]
   );
 
@@ -171,7 +171,7 @@ export const resetPasswordWithOTP = async (email, otp, newPassword) => {
  */
 export const cleanupExpiredOTPs = async () => {
   const result = await pool.query(
-    'UPDATE nguoi_dung SET reset_otp = NULL, reset_otp_expiry = NULL WHERE reset_otp_expiry < NOW()'
+    'UPDATE nguoi_dung SET ma_xac_thuc = NULL, han_ma_xac_thuc = NULL WHERE han_ma_xac_thuc < NOW()'
   );
 
   console.log(`🧹 Cleaned up ${result.rowCount} expired OTPs`);
