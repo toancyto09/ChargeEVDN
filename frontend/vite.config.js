@@ -14,6 +14,7 @@ export default defineConfig({
     postcss: './postcss.config.js',
   },
   server: {
+    host: '0.0.0.0', // Cho phép truy cập từ mạng local
     port: 5173,
     proxy: {
       '/api': {

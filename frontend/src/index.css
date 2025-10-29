@@ -143,4 +143,119 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Leaflet map styles */
+  .leaflet-container {
+    font-family: inherit;
+    z-index: 0 !important;
+  }
+
+  /* Leaflet map panes - ensure they don't override modal z-index */
+  .leaflet-pane {
+    z-index: auto !important;
+  }
+
+  .leaflet-tile-pane {
+    z-index: 1 !important;
+  }
+
+  .leaflet-overlay-pane {
+    z-index: 2 !important;
+  }
+
+  .leaflet-shadow-pane {
+    z-index: 3 !important;
+  }
+
+  .leaflet-marker-pane {
+    z-index: 4 !important;
+  }
+
+  .leaflet-tooltip-pane {
+    z-index: 5 !important;
+  }
+
+  .leaflet-popup-pane {
+    z-index: 6 !important;
+  }
+
+  /* Leaflet controls - keep below modals */
+  .leaflet-control-container {
+    z-index: 10 !important;
+  }
+
+  .leaflet-top,
+  .leaflet-bottom {
+    z-index: 10 !important;
+  }
+
+  .leaflet-popup-content-wrapper {
+    border-radius: 0.5rem;
+  }
+
+  .leaflet-popup-content {
+    margin: 0;
+  }
+
+  /* Custom marker styles */
+  .custom-marker {
+    background: transparent;
+    border: none;
+  }
+
+  .user-location-marker {
+    background: transparent;
+    border: none;
+  }
+
+  /* Fix dropdown options size in filter modal */
+  select {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+    font-size: 0.875rem !important; /* 14px */
+    line-height: 1.25rem !important;
+  }
+
+  /* Force normal option size on all browsers */
+  select option {
+    padding: 0.5rem !important;
+    font-size: 0.875rem !important; /* 14px - smaller to prevent overflow */
+    line-height: 1.25rem !important;
+    background-color: white !important;
+    color: #1f2937 !important;
+    font-weight: normal !important;
+    min-height: auto !important;
+    height: auto !important;
+  }
+
+  /* iOS Safari specific fixes */
+  @supports (-webkit-touch-callout: none) {
+    select {
+      font-size: 16px !important; /* Prevent iOS zoom */
+    }
+
+    select option {
+      font-size: 14px !important;
+      padding: 8px 12px !important;
+    }
+  }
+
+  /* Ensure dropdown list doesn't overflow */
+  select:focus {
+    outline: none;
+  }
+
+  /* Remove any hover/focus effects on options that might increase size */
+  select option:hover,
+  select option:focus,
+  select option:active {
+    font-size: 0.875rem !important;
+    background-color: #f3f4f6 !important;
+  }
 }

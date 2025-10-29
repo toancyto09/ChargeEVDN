@@ -1,8 +1,15 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  useLocation,
+  Navigate,
+} from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { Logo } from './components/common/Logo';
 import { Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Feature-based imports
 import LoginPage from './features/auth/pages/LoginPage';
@@ -11,14 +18,58 @@ import ForgotPasswordPage from './features/auth/pages/ForgotPasswordPage';
 import ResetPasswordPage from './features/auth/pages/ResetPasswordPage';
 import GoogleCallbackPage from './features/auth/pages/GoogleCallbackPage';
 import DashboardPage from './features/dashboard/pages/DashboardPage';
+import MapPage from './features/map/pages/MapPage';
+import BottomNav from './components/layout/BottomNav';
 
 function App() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   return (
     <Router>
-      <div className="min-h-screen bg-background font-sans antialiased">
-        {/* Mobile-First Header */}
+      <AppContent />
+    </Router>
+  );
+}
+
+function AppContent() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+
+  // Re-check isLoggedIn whenever location changes
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
+
+  useEffect(() => {
+    // Update isLoggedIn whenever location changes
+    setIsLoggedIn(!!localStorage.getItem('token'));
+  }, [location]);
+
+  // Also listen to storage events (for cross-tab sync)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setIsLoggedIn(!!localStorage.getItem('token'));
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Use location.pathname instead of window.location.pathname
+  const isMapPage = location.pathname === '/map';
+
+  const isProtectedPage =
+    location.pathname === '/dashboard' ||
+    location.pathname === '/notifications' ||
+    location.pathname === '/settings' ||
+    location.pathname === '/route';
+
+  const isAuthPage =
+    location.pathname === '/login' ||
+    location.pathname === '/register' ||
+    location.pathname === '/forgot-password' ||
+    location.pathname === '/reset-password';
+
+  return (
+    <div className="min-h-screen bg-background font-sans antialiased">
+      {/* Mobile-First Header - Hide on map, protected pages, and auth pages */}
+      {!isMapPage && !isProtectedPage && !isAuthPage && (
         <header className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center justify-between">
@@ -58,12 +109,21 @@ function App() {
                 >
                   📅 Đặt chỗ
                 </a>
-                <Link
-                  to="/login"
-                  className="bg-primary text-primary-foreground px-3 py-2 lg:px-4 lg:py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
-                >
-                  Đăng nhập
-                </Link>
+                {isLoggedIn ? (
+                  <Link
+                    to="/dashboard"
+                    className="bg-primary text-primary-foreground px-3 py-2 lg:px-4 lg:py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="bg-primary text-primary-foreground px-3 py-2 lg:px-4 lg:py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+                  >
+                    Đăng nhập
+                  </Link>
+                )}
               </nav>
             </div>
 
@@ -89,40 +149,113 @@ function App() {
                   >
                     📱 Tải ứng dụng
                   </a>
-                  <Link
-                    to="/login"
-                    className="bg-primary text-primary-foreground px-4 py-3 rounded-md text-base font-medium hover:bg-primary/90 transition-colors w-full mt-2 btn-touch text-center"
-                  >
-                    Đăng nhập
-                  </Link>
+                  {isLoggedIn ? (
+                    <Link
+                      to="/dashboard"
+                      className="bg-primary text-primary-foreground px-4 py-3 rounded-md text-base font-medium hover:bg-primary/90 transition-colors w-full mt-2 btn-touch text-center"
+                    >
+                      Dashboard
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/login"
+                      className="bg-primary text-primary-foreground px-4 py-3 rounded-md text-base font-medium hover:bg-primary/90 transition-colors w-full mt-2 btn-touch text-center"
+                    >
+                      Đăng nhập
+                    </Link>
+                  )}
                 </nav>
               </div>
             )}
           </div>
         </header>
+      )}
 
-        {/* Main Content - Mobile optimized padding */}
-        <main className="container mx-auto px-4 py-4 sm:py-6 lg:py-8">
-          <Routes>
-            <Route path="/" element={<WelcomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route
-              path="/auth/google/callback"
-              element={<GoogleCallbackPage />}
-            />
-          </Routes>
-        </main>
+      {/* Main Content - No padding for map, protected pages, and auth pages */}
+      <main
+        className={
+          isMapPage || isProtectedPage || isAuthPage
+            ? ''
+            : 'container mx-auto px-4 py-4 sm:py-6 lg:py-8'
+        }
+      >
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<Navigate to="/map" replace />} />
+          <Route
+            path="/login"
+            element={isLoggedIn ? <Navigate to="/dashboard" /> : <LoginPage />}
+          />
+          <Route
+            path="/register"
+            element={
+              isLoggedIn ? <Navigate to="/dashboard" /> : <RegisterPage />
+            }
+          />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route
+            path="/auth/google/callback"
+            element={<GoogleCallbackPage />}
+          />
 
-        <Toaster
-          position="top-center" // Better for mobile
-          className="sm:top-right"
-        />
-      </div>
-    </Router>
+          {/* Public Map - No login required */}
+          <Route path="/map" element={<MapPage />} />
+
+          {/* Protected routes - Login required */}
+          <Route
+            path="/dashboard"
+            element={isLoggedIn ? <DashboardPage /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/route"
+            element={
+              isLoggedIn ? (
+                <ComingSoonPage title="Lộ trình" />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              isLoggedIn ? (
+                <ComingSoonPage title="Thông báo" />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              isLoggedIn ? (
+                <ComingSoonPage title="Cài đặt" />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
+        </Routes>
+      </main>
+
+      {/* Bottom Navigation - Show on map and protected pages */}
+      {(isMapPage || isProtectedPage) && <BottomNav />}
+
+      <Toaster position="top-center" className="sm:top-right" />
+    </div>
+  );
+}
+
+// Coming Soon Page
+function ComingSoonPage({ title }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] text-center px-4">
+      <div className="text-6xl mb-4">🚧</div>
+      <h1 className="text-2xl font-bold text-gray-800 mb-2">{title}</h1>
+      <p className="text-gray-600">Tính năng đang được phát triển</p>
+    </div>
   );
 }
 
