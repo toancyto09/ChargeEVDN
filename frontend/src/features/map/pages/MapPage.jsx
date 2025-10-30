@@ -5,18 +5,14 @@ import MapView from '../components/MapView';
 import { SearchBar } from '../components/SearchBar';
 import { FilterPanel } from '../components/FilterPanel';
 import { StationList } from '../components/StationList';
-import { AIRecommendations } from '../components/AIRecommendations';
 import { BottomSheet } from '../components/BottomSheet';
 import LocationSourceBadge from '../components/LocationSourceBadge';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useResponsive } from '../../../hooks/useResponsive';
-import {
-  mockStations,
-  filterStations,
-  sortStations,
-  getAIRecommendations,
-} from '../data/mockStations';
+import { stationsAPI, aiAPI } from '../../../services/api';
+import { transformStationsArray } from '../utils/transformStationData';
 import { LogIn } from 'lucide-react';
+import AIRecommendFloatingTab from '../components/AIRecommendFloatingTab';
 
 export default function MapPage() {
   const navigate = useNavigate();
@@ -36,19 +32,40 @@ export default function MapPage() {
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    status: 'all',
-    connectorType: 'all',
-    powerRange: 'all',
-    maxPrice: 10000,
-    maxDistance: 20,
-    providers: [], // Array for multi-select
+  // Load filters from localStorage or use defaults
+  const [filters, setFilters] = useState(() => {
+    const saved = localStorage.getItem('mapFilters');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse saved filters:', e);
+      }
+    }
+    return {
+      status: 'all',
+      connectorType: 'all',
+      powerRange: 'all',
+      maxPrice: 10000,
+      maxDistance: 50, // Increased from 20km to 50km
+      batteryLevel: 50,
+      minRating: 0,
+      providers: [],
+    };
   });
   const [sortBy, setSortBy] = useState('distance');
 
   // Filtered and sorted stations
-  const [displayedStations, setDisplayedStations] = useState(mockStations);
+  const [displayedStations, setDisplayedStations] = useState([]);
   const [aiRecommendations, setAiRecommendations] = useState([]);
+  const [loadingStations, setLoadingStations] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
+
+  // Save filters to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('mapFilters', JSON.stringify(filters));
+  }, [filters]);
 
   // Update map center when user location changes
   useEffect(() => {
@@ -73,38 +90,81 @@ export default function MapPage() {
     }
   }, [error]);
 
-  // Apply filters and sorting
+  // Mới: Luôn fetch danh sách trạm thường cho map/lọc classic
   useEffect(() => {
-    let result = mockStations;
+    const fetchStations = async () => {
+      if (!userLocation) return;
+      try {
+        const response = await stationsAPI.getAll({
+          lat: userLocation.lat,
+          lng: userLocation.lng,
+          radius: filters.maxDistance,
+          maxPrice: filters.maxPrice,
+          minRating: filters.minRating,
+          connector:
+            filters.connectorType !== 'all' ? filters.connectorType : undefined,
+          status: filters.status !== 'all' ? filters.status : undefined,
+        });
+        // ✅ FIX: Transform dữ liệu từ backend sang frontend format
+        setDisplayedStations(transformStationsArray(response.data?.data || []));
+      } catch (error) {
+        setDisplayedStations([]);
+        console.error('Failed to fetch stations:', error);
+      }
+    };
+    fetchStations();
+  }, [userLocation, filters]);
 
-    // Apply search
-    if (searchTerm) {
-      result = result.filter(
-        (station) =>
-          station.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          station.address.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+  // AI recommendations with loading & error states
+  useEffect(() => {
+    const fetchAIRecommendations = async () => {
+      if (!userLocation) return;
 
-    // Apply filters
-    result = filterStations(result, filters);
+      setAiLoading(true);
+      setAiError(null);
 
-    // Apply sorting
-    result = sortStations(result, sortBy);
+      try {
+        const response = await aiAPI.getRecommendations({
+          lat: userLocation.lat,
+          lng: userLocation.lng,
+          soc: filters.batteryLevel || 50,
+          maxPrice: filters.maxPrice,
+          radius: filters.maxDistance,
+          limit: 10,
+        });
+        // ✅ FIX: Transform dữ liệu AI recommendations
+        setAiRecommendations(transformStationsArray(response.data?.data || []));
+      } catch (err) {
+        setAiError(err.response?.data?.message || 'Không thể tải đề xuất AI');
+        setAiRecommendations([]);
+      } finally {
+        setAiLoading(false);
+      }
+    };
 
-    setDisplayedStations(result);
+    // ✅ Debounce: Delay 500ms sau khi filters thay đổi
+    const timeoutId = setTimeout(() => {
+      fetchAIRecommendations();
+    }, 500);
 
-    // Update AI recommendations
-    const recommendations = getAIRecommendations(result, {
-      connectorType:
-        filters.connectorType !== 'all' ? filters.connectorType : null,
-    });
-    setAiRecommendations(recommendations);
-  }, [searchTerm, filters, sortBy]);
+    return () => clearTimeout(timeoutId);
+  }, [userLocation, filters]);
 
   const handleSearch = (query) => {
     setSearchTerm(query);
   };
+
+  // Filter stations by search term
+  const filteredStations = displayedStations.filter((station) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      station.name?.toLowerCase().includes(term) ||
+      station.address?.toLowerCase().includes(term) ||
+      station.ten_tram?.toLowerCase().includes(term) ||
+      station.dia_chi?.toLowerCase().includes(term)
+    );
+  });
 
   const handleFilterToggle = () => {
     setShowFilters(!showFilters);
@@ -143,12 +203,16 @@ export default function MapPage() {
     }
   };
 
-  if (loading) {
+  if (loading || (loadingStations && displayedStations.length === 0)) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải bản đồ...</p>
+          <p className="text-gray-600">
+            {loading
+              ? 'Đang xác định vị trí...'
+              : 'Đang tải danh sách trạm sạc...'}
+          </p>
         </div>
       </div>
     );
@@ -207,18 +271,10 @@ export default function MapPage() {
               </div>
             )}
 
-            {/* AI Recommendations + Station List */}
+            {/* Station List - AI gợi ý đã tách riêng thành floating tab */}
             <div className="flex-1 overflow-y-auto">
-              <div className="p-4">
-                <AIRecommendations
-                  stations={aiRecommendations}
-                  onStationClick={handleStationClick}
-                  isDesktop={true}
-                />
-              </div>
-
               <StationList
-                stations={displayedStations}
+                stations={filteredStations}
                 onStationClick={handleStationClick}
                 highlightedStationId={highlightedStationId}
                 sortBy={sortBy}
@@ -274,16 +330,10 @@ export default function MapPage() {
             />
           </div>
 
-          {/* Bottom Sheet */}
+          {/* Bottom Sheet - AI gợi ý đã tách riêng thành floating tab */}
           <BottomSheet snapPoints={[0.15, 0.5, 0.9]}>
-            <AIRecommendations
-              stations={aiRecommendations}
-              onStationClick={handleStationClick}
-              isDesktop={false}
-            />
-
             <StationList
-              stations={displayedStations}
+              stations={filteredStations}
               onStationClick={handleStationClick}
               highlightedStationId={highlightedStationId}
               sortBy={sortBy}
@@ -302,6 +352,12 @@ export default function MapPage() {
           )}
         </>
       )}
+      <AIRecommendFloatingTab
+        recommendations={aiRecommendations}
+        onStationClick={handleStationClick}
+        loading={aiLoading}
+        error={aiError}
+      />
     </div>
   );
 }

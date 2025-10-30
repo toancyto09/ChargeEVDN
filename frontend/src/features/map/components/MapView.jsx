@@ -1,5 +1,5 @@
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
-import { useEffect } from 'react';
+import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { useEffect, useRef } from 'react';
 import StationMarker from './StationMarker';
 import UserLocationMarker from './UserLocationMarker';
 import MapControls from './MapControls';
@@ -17,6 +17,7 @@ function MapController({ center }) {
 
   return null;
 }
+
 
 export default function MapView({
   center,
@@ -48,10 +49,10 @@ export default function MapView({
         />
       )}
 
-      {/* Station markers */}
-      {stations.map((station) => (
+      {/* Station markers with stable key */}
+      {stations.map((station, idx) => (
         <StationMarker
-          key={station.id}
+          key={station.id || station.id_tram || idx}
           station={station}
           onStationClick={onStationClick}
           isHighlighted={station.id === highlightedStationId}

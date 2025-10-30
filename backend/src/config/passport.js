@@ -1,6 +1,8 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import pool from './db.js';
+import { findOrCreateGoogleUser } from '../modules/auth/auth.google.service.js';
+import logger from '../utils/logger.js';
 
 /**
  * Configure Passport with Google OAuth Strategy
@@ -36,85 +38,38 @@ export const configurePassport = () => {
         },
         async (accessToken, refreshToken, profile, done) => {
           try {
-            const email = profile.emails[0].value;
-            const googleId = profile.id;
-            const hoTen = profile.displayName;
-            const avatar = profile.photos[0]?.value;
+            // Use auth.google.service to find or create user
+            const user = await findOrCreateGoogleUser(profile);
 
-            // Check if user exists
-            let result = await pool.query(
-              'SELECT id_nguoi_dung, ho_ten, email, vai_tro, trang_thai, id_google FROM nguoi_dung WHERE email = $1',
-              [email]
-            );
-
-            let user;
-
-            if (result.rows.length > 0) {
-              // User exists
-              user = result.rows[0];
-
-              // Update google_id if not set
-              if (!user.id_google) {
-                await pool.query(
-                  'UPDATE nguoi_dung SET id_google = $1, url_anh_dai_dien = $2 WHERE id_nguoi_dung = $3',
-                  [googleId, avatar, user.id_nguoi_dung]
-                );
-                user.id_google = googleId;
-              }
-
-              // Check if account is locked
-              if (user.trang_thai === 'khoa') {
-                return done(null, false, {
-                  message:
-                    'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.',
-                });
-              }
-            } else {
-              // Create new user
-              const insertResult = await pool.query(
-                `INSERT INTO nguoi_dung (ho_ten, email, id_google, url_anh_dai_dien, vai_tro, trang_thai) 
-                VALUES ($1, $2, $3, $4, $5, $6) 
-                RETURNING id_nguoi_dung, ho_ten, email, vai_tro, trang_thai, id_google`,
-                [hoTen, email, googleId, avatar, 'user', 'hoat_dong']
-              );
-              user = insertResult.rows[0];
-
-              // Log activity
-              await pool.query(
-                `INSERT INTO nhat_ky_he_thong (id_nguoi_dung, hanh_dong, chi_tiet) 
-               VALUES ($1, $2, $3)`,
-                [
-                  user.id_nguoi_dung,
-                  'google_register',
-                  JSON.stringify({ email, provider: 'google' }),
-                ]
-              );
+            // Check if account is locked
+            if (user.trang_thai === 'khoa') {
+              return done(null, false, {
+                message: 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.',
+              });
             }
 
             // Log login activity
             await pool.query(
               `INSERT INTO nhat_ky_he_thong (id_nguoi_dung, hanh_dong, chi_tiet) 
-             VALUES ($1, $2, $3)`,
+               VALUES ($1, $2, $3)`,
               [
                 user.id_nguoi_dung,
                 'google_login',
-                JSON.stringify({ email, provider: 'google' }),
+                JSON.stringify({ email: user.email, provider: 'google' }),
               ]
             );
 
             return done(null, user);
           } catch (error) {
-            console.error('❌ Google OAuth error:', error);
+            logger.error('Google OAuth error:', error);
             return done(error, null);
           }
         }
       )
     );
-    console.log('✅ Google OAuth strategy configured');
+    logger.info('Google OAuth strategy configured');
   } else {
-    console.warn(
-      '⚠️  Google OAuth credentials not found. Google login will be disabled.'
-    );
+    logger.warn('Google OAuth credentials not found. Google login will be disabled.');
   }
 };
 

@@ -1,7 +1,8 @@
 import { Sparkles } from 'lucide-react';
 import { StationCard } from './StationCard';
+import { SOCIndicator } from './SOCIndicator';
 
-export function AIRecommendations({ stations, onStationClick, isDesktop }) {
+export function AIRecommendations({ stations, onStationClick, isDesktop, batteryLevel = 50 }) {
   // Debug logging
   console.log('🤖 AI Recommendations:', {
     count: stations?.length || 0,
@@ -22,13 +23,21 @@ export function AIRecommendations({ stations, onStationClick, isDesktop }) {
   return (
     <div className={`${isDesktop ? 'mb-6' : 'mb-4'}`}>
       {/* Header */}
-      <div className="flex items-center gap-2 mb-3 px-4 lg:px-0">
-        <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full">
-          <Sparkles size={16} className="text-white" />
+      <div className="flex items-center justify-between mb-3 px-4 lg:px-0">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full">
+            <Sparkles size={16} className="text-white" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            AI Gợi ý cho bạn
+          </h3>
         </div>
-        <h3 className="text-lg font-semibold text-gray-900">
-          AI Gợi ý cho bạn
-        </h3>
+        {/* SOC Indicator */}
+        <SOCIndicator 
+          level={batteryLevel} 
+          showContext={false}
+          size="sm"
+        />
       </div>
 
       {/* Recommendations Grid */}

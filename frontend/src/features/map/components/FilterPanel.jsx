@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { SOCIndicator } from './SOCIndicator';
 
 export function FilterPanel({ filters, onFiltersChange, onClose, isDesktop }) {
   const [localFilters, setLocalFilters] = useState(filters);
@@ -41,6 +42,8 @@ export function FilterPanel({ filters, onFiltersChange, onClose, isDesktop }) {
       powerRange: 'all',
       maxPrice: 10000,
       maxDistance: 20,
+      batteryLevel: 50,
+      minRating: 0,
       providers: [],
     };
     setLocalFilters(resetFilters);
@@ -194,6 +197,89 @@ export function FilterPanel({ filters, onFiltersChange, onClose, isDesktop }) {
               Đã chọn: {(localFilters.providers || []).length} nhà cung cấp
             </p>
           )}
+        </div>
+
+        {/* Availability Filter */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Trạng thái cổng
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: 'all', label: 'Tất cả' },
+              { value: 'trong', label: '⚡ Còn trống' },
+              { value: 'dang_su_dung', label: '🔌 Đang dùng' },
+            ].map((status) => (
+              <button
+                key={status.value}
+                onClick={() => handleFilterChange('status', status.value)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  localFilters.status === status.value
+                    ? 'bg-emerald-500 text-white shadow-md'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {status.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Rating Filter */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Đánh giá tối thiểu: {localFilters.minRating || 0}⭐
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="5"
+            step="0.5"
+            value={localFilters.minRating || 0}
+            onChange={(e) =>
+              handleFilterChange('minRating', parseFloat(e.target.value))
+            }
+            className="w-full accent-emerald-500"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0⭐</span>
+            <span>5⭐</span>
+          </div>
+        </div>
+
+        {/* Battery Level Filter - SOC Input */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Mức pin hiện tại: {localFilters.batteryLevel || 50}%
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            value={localFilters.batteryLevel || 50}
+            onChange={(e) =>
+              handleFilterChange('batteryLevel', parseInt(e.target.value))
+            }
+            className="w-full accent-emerald-500"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>0% (Hết pin)</span>
+            <span>100% (Đầy pin)</span>
+          </div>
+          <div className="flex justify-between text-xs text-gray-400 mt-1">
+            <span className="text-red-500">🔴 Critical</span>
+            <span className="text-yellow-500">🟡 Low</span>
+            <span className="text-green-500">🟢 Normal</span>
+          </div>
+          {/* SOC Level Indicator */}
+          <div className="mt-2">
+            <SOCIndicator 
+              level={localFilters.batteryLevel || 50} 
+              showContext={true}
+              size="sm"
+            />
+          </div>
         </div>
 
         {/* Max Distance Filter */}

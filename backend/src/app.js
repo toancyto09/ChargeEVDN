@@ -1,3 +1,8 @@
+/**
+ * Express Application
+ * Main application configuration and middleware setup
+ */
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -5,8 +10,21 @@ import dotenv from 'dotenv';
 import passport from './config/passport.js';
 import { configurePassport } from './config/passport.js';
 
-import authRoutes from './modules/auth/routes.js';
+// Config
+import { corsOptions } from './config/cors.config.js';
 import { pool } from './config/db.js';
+
+// Middlewares
+import {
+  errorHandler,
+  notFoundHandler,
+} from './middlewares/errorHandler.middleware.js';
+import logger from './utils/logger.js';
+
+// Routes
+import authRoutes from './modules/auth/auth.routes.js';
+import aiRoutes from './modules/ai/ai.routes.js';
+import stationRoutes from './modules/station/station.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -17,15 +35,6 @@ const app = express();
 app.use(helmet());
 
 // CORS configuration
-const corsOptions = {
-  origin:
-    process.env.NODE_ENV === 'production'
-      ? ['https://your-production-domain.com']
-      : ['http://localhost:5173', 'http://localhost:3000'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-};
 app.use(cors(corsOptions));
 
 // Body parsing middleware
@@ -36,21 +45,32 @@ app.use(express.urlencoded({ extended: true }));
 configurePassport();
 app.use(passport.initialize());
 
+// Request logging middleware (development only)
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    logger.request(req.method, req.originalUrl);
+    next();
+  });
+}
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
+    success: true,
     status: 'OK',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0',
   });
 });
 
 // Database connection test endpoint
-app.get('/api/test-db', async (req, res) => {
+app.get('/api/test-db', async (req, res, next) => {
   try {
     const result = await pool.query(
       'SELECT NOW() as current_time, current_database() as database'
     );
+    logger.success('Database connection test successful');
     res.json({
       success: true,
       message: 'Database connection successful',
@@ -61,40 +81,27 @@ app.get('/api/test-db', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Database test error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Database connection failed',
-      error: error.message,
-    });
+    logger.error('Database connection test failed', error);
+    next(error);
   }
 });
 
-// API routes
+// ============================
+// API ROUTES
+// ============================
 app.use('/api/auth', authRoutes);
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found',
-    path: req.originalUrl,
-  });
-});
+app.use('/api/ai', aiRoutes);
+app.use('/api/stations', stationRoutes);
 
-// Global error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
+logger.info('✅ All routes registered');
 
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
+// ============================
+// ERROR HANDLING
+// ============================
+// 404 Not Found handler (must be after all routes)
+app.use(notFoundHandler);
 
-  res.status(statusCode).json({
-    success: false,
-    error: {
-      message,
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-    },
-  });
-});
+// Global error handling middleware (must be last)
+app.use(errorHandler);
 
 export default app;

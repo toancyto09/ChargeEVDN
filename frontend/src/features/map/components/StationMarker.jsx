@@ -71,24 +71,30 @@ export default function StationMarker({
   onStationClick,
   isHighlighted,
 }) {
+  // Safe position check
+  const position = Array.isArray(station.position) 
+    ? station.position 
+    : [station.vi_do || station.lat, station.kinh_do || station.lng];
+  
+  if (!position || !position[0] || !position[1]) {
+    return null; // Skip rendering if no valid position
+  }
+
   const icon = createCustomIcon(station.provider, isHighlighted);
   const statusInfo = getStatusInfo(station.status);
 
-  const totalAvailable = station.connectors.reduce(
-    (sum, c) => sum + c.available,
-    0
-  );
-  const totalSlots = station.connectors.reduce((sum, c) => sum + c.total, 0);
+  // ALWAYS fallback connectors an toàn
+  const connectors = Array.isArray(station.connectors) ? station.connectors : [];
+  const totalAvailable = connectors.reduce((sum, c) => sum + (c.available || 0), 0);
+  const totalSlots = connectors.reduce((sum, c) => sum + (c.total || 0), 0);
 
   return (
     <Marker
-      position={station.position}
+      position={position}
       icon={icon}
       eventHandlers={{
         click: () => {
-          if (onStationClick) {
-            onStationClick(station);
-          }
+          if (onStationClick) onStationClick(station);
         },
       }}
     >
@@ -100,39 +106,25 @@ export default function StationMarker({
             <div className="flex items-center gap-2 text-sm">
               <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
               <span className="font-semibold">{station.rating}</span>
-              <span className="text-gray-500">
-                ({station.reviews} đánh giá)
-              </span>
+              <span className="text-gray-500">({station.reviews} đánh giá)</span>
             </div>
           </div>
-
           {/* Address */}
           <div className="flex items-start gap-2 mb-3 text-sm">
             <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
             <span className="text-gray-600">{station.address}</span>
           </div>
-
           {/* Status */}
           <div className="flex items-center justify-between mb-3">
-            <span
-              className={`px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}
-            >
-              {statusInfo.text}
-            </span>
-            <span className="text-sm text-gray-600">
-              {totalAvailable}/{totalSlots} slots
-            </span>
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>{statusInfo.text}</span>
+            <span className="text-sm text-gray-600">{totalAvailable}/{totalSlots} slots</span>
           </div>
-
           {/* Connectors */}
           <div className="mb-3">
             <p className="text-xs text-gray-500 mb-2">Loại cổng sạc:</p>
             <div className="flex flex-wrap gap-2">
-              {station.connectors.map((connector, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-1.5 text-xs px-2 py-1 bg-gray-50 border border-gray-200 rounded"
-                >
+              {connectors.map((connector, idx) => (
+                <div key={idx} className="flex items-center gap-1.5 text-xs px-2 py-1 bg-gray-50 border border-gray-200 rounded">
                   <Zap size={12} className="text-emerald-600" />
                   <span className="font-medium">{connector.type}</span>
                   <span className="text-gray-500">• {connector.power}kW</span>
@@ -140,27 +132,18 @@ export default function StationMarker({
               ))}
             </div>
           </div>
-
           {/* Price & Hours */}
           <div className="space-y-2 mb-3 text-sm">
             <div className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-emerald-600" />
-              <span className="font-semibold">
-                {station.price.toLocaleString('vi-VN')} đ/kWh
-              </span>
+              <span className="font-semibold">{station.price?.toLocaleString('vi-VN')} đ/kWh</span>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-blue-600" />
               <span className="text-gray-600">{station.openHours}</span>
             </div>
           </div>
-
-          {/* Distance */}
-          <div className="mb-3 text-sm text-gray-600">
-            📍 Cách bạn {station.distance} km
-          </div>
-
-          {/* Action Button */}
+          <div className="mb-3 text-sm text-gray-600">📍 Cách bạn {station.distance} km</div>
           <button
             onClick={() => onStationClick && onStationClick(station)}
             className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white py-2 rounded-lg font-medium transition-all"

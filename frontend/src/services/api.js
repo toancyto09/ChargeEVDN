@@ -49,7 +49,7 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (credentials) => api.post('/api/auth/login', credentials),
   register: (userData) => api.post('/api/auth/register', userData),
-  getProfile: () => api.get('/api/auth/me'),
+  getProfile: () => api.get('/api/auth/profile'),
   logout: () => api.post('/api/auth/logout'),
   // Password reset with OTP
   forgotPassword: (data) => api.post('/api/auth/forgot-password', data),
@@ -101,6 +101,13 @@ export const vehiclesAPI = {
 export const reviewsAPI = {
   create: (reviewData) => api.post('/api/reviews', reviewData),
   getByStation: (stationId) => api.get(`/api/stations/${stationId}/reviews`),
+};
+
+// AI Recommendations API
+export const aiAPI = {
+  getRecommendations: (params) => api.get('/api/ai/recommendations', { params }),
+  explainRecommendation: (stationId, params) =>
+    api.get(`/api/ai/recommendations/explain/${stationId}`, { params }),
 };
 
 export default api;

@@ -6,6 +6,11 @@ export function StationCard({
   compact = false,
   highlighted = false,
 }) {
+  // ALWAYS default connectors to []
+  const connectors = Array.isArray(station.connectors) ? station.connectors : [];
+  const totalAvailable = connectors.reduce((sum, c) => sum + (c.available || 0), 0);
+  const totalSlots = connectors.reduce((sum, c) => sum + (c.total || 0), 0);
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'available':
@@ -36,12 +41,6 @@ export function StationCard({
     }
   };
 
-  const totalAvailable = station.connectors.reduce(
-    (sum, c) => sum + c.available,
-    0
-  );
-  const totalSlots = station.connectors.reduce((sum, c) => sum + c.total, 0);
-
   if (compact) {
     // Compact version for list view
     return (
@@ -61,10 +60,10 @@ export function StationCard({
 
             <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
               <MapPin size={14} className="flex-shrink-0" />
-              <span className="truncate">{station.distance} km</span>
+              <span className="truncate">{station.distance || 0} km</span>
               <span>•</span>
               <DollarSign size={14} className="flex-shrink-0" />
-              <span>{station.price.toLocaleString('vi-VN')}đ/kWh</span>
+              <span>{station.price ? station.price.toLocaleString('vi-VN') : '--'}đ/kWh</span>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
@@ -76,7 +75,7 @@ export function StationCard({
                 {getStatusText(station.status)} ({totalAvailable}/{totalSlots})
               </span>
 
-              {station.connectors.map((connector, idx) => (
+              {connectors.map((connector, idx) => (
                 <span
                   key={idx}
                   className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full"
@@ -85,6 +84,20 @@ export function StationCard({
                 </span>
               ))}
             </div>
+
+            {/* AI Recommendation Reasons */}
+            {station.reasons && station.reasons.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {station.reasons.map((reason, idx) => (
+                  <span
+                    key={idx}
+                    className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200"
+                  >
+                    {reason}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-1 text-sm font-medium text-amber-600 flex-shrink-0">
@@ -120,7 +133,7 @@ export function StationCard({
             </h3>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <MapPin size={14} />
-              <span className="truncate">{station.distance} km</span>
+              <span className="truncate">{station.distance || 0} km</span>
             </div>
           </div>
 
@@ -147,7 +160,7 @@ export function StationCard({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {station.connectors.map((connector, idx) => (
+            {connectors.map((connector, idx) => (
               <div
                 key={idx}
                 className="flex items-center gap-2 text-xs px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg"
@@ -165,7 +178,7 @@ export function StationCard({
           <div className="flex items-center gap-1.5 text-sm text-gray-700">
             <DollarSign size={16} className="text-emerald-600" />
             <span className="font-semibold">
-              {station.price.toLocaleString('vi-VN')}đ
+              {station.price ? station.price.toLocaleString('vi-VN') : '--'}đ
             </span>
             <span className="text-gray-500">/kWh</span>
           </div>
@@ -175,6 +188,23 @@ export function StationCard({
             <span>{station.openHours}</span>
           </div>
         </div>
+
+        {/* AI Recommendation Reasons - Full Version */}
+        {station.reasons && station.reasons.length > 0 && (
+          <div className="mt-3 pt-3 border-t">
+            <p className="text-xs font-medium text-gray-700 mb-2">Lý do gợi ý:</p>
+            <div className="flex flex-wrap gap-1.5">
+              {station.reasons.map((reason, idx) => (
+                <span
+                  key={idx}
+                  className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full border border-emerald-200"
+                >
+                  {reason}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
