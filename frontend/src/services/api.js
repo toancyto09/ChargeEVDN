@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { toast } from 'sonner';
 
 // Create axios instance
 const api = axios.create({
@@ -29,18 +30,28 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Chỉ redirect nếu có token (tức là user đang logged in)
-    // Nếu đang ở trang login/register thì không redirect
-    if (error.response?.status === 401) {
-      const token = localStorage.getItem('token');
-      const currentPath = window.location.pathname;
-
-      // Chỉ redirect nếu user đã có token và KHÔNG đang ở login/register
-      if (token && currentPath !== '/login' && currentPath !== '/register') {
+    const status = error.response?.status;
+    const token = localStorage.getItem('token');
+    const currentPath = window.location.pathname;
+    
+    // Xử lý token hết hạn hoặc không hợp lệ (401 hoặc 403)
+    if ((status === 401 || status === 403) && token) {
+      // Chỉ redirect nếu KHÔNG đang ở trang login/register
+      if (currentPath !== '/login' && currentPath !== '/register') {
         localStorage.removeItem('token');
-        window.location.href = '/login';
+        
+        // Hiển thị thông báo
+        toast.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', {
+          duration: 3000,
+        });
+        
+        // Redirect sau 800ms để user thấy toast
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 800);
       }
     }
+    
     return Promise.reject(error);
   }
 );

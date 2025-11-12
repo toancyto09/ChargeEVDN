@@ -19,12 +19,13 @@ export const authenticateToken = (req, res, next) => {
       throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Access token required');
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
       if (err) {
-        throw new ApiError(HTTP_STATUS.FORBIDDEN, ERROR_MESSAGES.INVALID_TOKEN);
+        // Use next(error) instead of throw in callback
+        return next(new ApiError(HTTP_STATUS.FORBIDDEN, ERROR_MESSAGES.INVALID_TOKEN));
       }
 
-      req.user = user; // { id, email, role }
+      req.user = decoded; // { id, email, role }
       next();
     });
   } catch (error) {

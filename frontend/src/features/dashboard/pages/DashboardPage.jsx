@@ -4,6 +4,7 @@ import { authAPI } from '../../../services/api';
 import { Logo } from '../../../components/common/Logo';
 import { toast } from 'sonner';
 import { User, LogOut, Car, MapPin, Calendar, Star } from 'lucide-react';
+import { isTokenExpired } from '../../../utils/tokenHelper';
 
 export default function DashboardPage() {
   const [user, setUser] = useState(null);
@@ -17,7 +18,17 @@ export default function DashboardPage() {
   const loadUserProfile = async () => {
     try {
       const token = localStorage.getItem('token');
+      
+      // Check token exists
       if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      // Check token expiry before making API call
+      if (isTokenExpired(token)) {
+        localStorage.removeItem('token');
+        toast.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
         navigate('/login');
         return;
       }
@@ -28,8 +39,16 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Failed to load profile:', error);
-      toast.error('Không thể tải thông tin người dùng');
-      navigate('/login');
+      
+      // Nếu là lỗi 401/403, interceptor đã xử lý (xóa token + redirect)
+      // Không cần hiển thị toast error nữa
+      const status = error.response?.status;
+      if (status !== 401 && status !== 403) {
+        toast.error('Không thể tải thông tin người dùng');
+      }
+      
+      // Interceptor sẽ tự redirect, không cần navigate ở đây
+      // navigate('/login');
     } finally {
       setLoading(false);
     }
