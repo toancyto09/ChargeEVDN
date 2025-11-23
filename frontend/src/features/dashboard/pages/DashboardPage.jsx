@@ -8,10 +8,17 @@ import { isTokenExpired } from '../../../utils/tokenHelper';
 export default function DashboardPage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    vehicles: 0,
+    bookings: 0,
+    nearbyStations: 0,
+    reviews: 0,
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
     loadUserProfile();
+    loadStats();
   }, []);
 
   const loadUserProfile = async () => {
@@ -50,6 +57,33 @@ export default function DashboardPage() {
       // navigate('/login');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      // Load vehicles count
+      const vehiclesResponse = await fetch('http://localhost:8080/api/vehicles', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const vehiclesData = await vehiclesResponse.json();
+      
+      if (vehiclesData.success) {
+        setStats(prev => ({
+          ...prev,
+          vehicles: vehiclesData.data.length,
+        }));
+      }
+
+      // TODO: Load other stats when APIs are ready
+      // - Bookings count
+      // - Nearby stations count
+      // - Reviews count
+    } catch (error) {
+      console.error('Failed to load stats:', error);
     }
   };
 
@@ -163,7 +197,7 @@ export default function DashboardPage() {
           <StatCard
             icon={<Car className="w-6 h-6" />}
             title="Phương tiện"
-            value="0"
+            value={stats.vehicles}
             gradient="from-blue-500 to-blue-600"
             iconBg="bg-blue-100"
             iconColor="text-blue-600"
@@ -171,7 +205,7 @@ export default function DashboardPage() {
           <StatCard
             icon={<Calendar className="w-6 h-6" />}
             title="Đặt chỗ"
-            value="0"
+            value={stats.bookings}
             gradient="from-green-500 to-green-600"
             iconBg="bg-green-100"
             iconColor="text-green-600"
@@ -179,7 +213,7 @@ export default function DashboardPage() {
           <StatCard
             icon={<MapPin className="w-6 h-6" />}
             title="Trạm gần"
-            value="0"
+            value={stats.nearbyStations}
             gradient="from-purple-500 to-purple-600"
             iconBg="bg-purple-100"
             iconColor="text-purple-600"
@@ -187,7 +221,7 @@ export default function DashboardPage() {
           <StatCard
             icon={<Star className="w-6 h-6" />}
             title="Đánh giá"
-            value="0"
+            value={stats.reviews}
             gradient="from-yellow-500 to-yellow-600"
             iconBg="bg-yellow-100"
             iconColor="text-yellow-600"
@@ -219,7 +253,7 @@ export default function DashboardPage() {
               title="Quản lý xe"
               description="Thêm và quản lý phương tiện của bạn"
               gradient="from-red-500 to-red-600"
-              onClick={() => toast.info('Chức năng đang phát triển')}
+              onClick={() => navigate('/vehicles')}
             />
             <ActionCard
               icon="📊"

@@ -20,6 +20,7 @@ import GoogleCallbackPage from './features/auth/pages/GoogleCallbackPage';
 import DashboardPage from './features/dashboard/pages/DashboardPage';
 import MapPage from './features/map/pages/MapPage';
 import { ProfilePage } from './features/profile/pages';
+import { VehiclesPage } from './features/vehicles/pages';
 import BottomNav from './components/layout/BottomNav';
 
 function App() {
@@ -59,7 +60,8 @@ function AppContent() {
     location.pathname === '/dashboard' ||
     location.pathname === '/notifications' ||
     location.pathname === '/settings' ||
-    location.pathname === '/route';
+    location.pathname === '/route' ||
+    location.pathname === '/vehicles';
 
   const isAuthPage =
     location.pathname === '/login' ||
@@ -242,6 +244,12 @@ function AppContent() {
             path="/profile"
             element={
               isLoggedIn ? <ProfilePage /> : <Navigate to="/login" />
+            }
+          />
+          <Route
+            path="/vehicles"
+            element={
+              isLoggedIn ? <VehiclesPage /> : <Navigate to="/login" />
             }
           />
         </Routes>

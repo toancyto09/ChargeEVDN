@@ -26,6 +26,7 @@ import authRoutes from './modules/auth/auth.routes.js';
 import aiRoutes from './modules/ai/ai.routes.js';
 import stationRoutes from './modules/station/station.routes.js';
 import profileRoutes from './modules/user/profile.routes.js';
+import vehicleRoutes from './modules/vehicle/vehicle.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -95,6 +96,7 @@ app.get('/api/test-db', async (req, res, next) => {
 // ============================
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/stations', stationRoutes);
 

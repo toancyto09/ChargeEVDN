@@ -175,58 +175,22 @@ export function sanitizeString(str) {
 }
 
 /**
- * Generic validation wrapper
+ * Express-validator error handler middleware
+ * Sử dụng với express-validator
  */
-export function validate(schema) {
-  return (req, res, next) => {
-    const errors = [];
+import { validationResult } from 'express-validator';
 
-    for (const [field, rules] of Object.entries(schema)) {
-      const value = req.body[field] || req.query[field];
-
-      // Required check
-      if (rules.required && (value === undefined || value === null || value === '')) {
-        errors.push(`${field} là bắt buộc`);
-        continue;
-      }
-
-      // Skip further validation if not required and not provided
-      if (!rules.required && !value) continue;
-
-      // Type check
-      if (rules.type && typeof value !== rules.type) {
-        errors.push(`${field} phải là kiểu ${rules.type}`);
-      }
-
-      // Min/Max for numbers
-      if (rules.min !== undefined && value < rules.min) {
-        errors.push(`${field} phải >= ${rules.min}`);
-      }
-      if (rules.max !== undefined && value > rules.max) {
-        errors.push(`${field} phải <= ${rules.max}`);
-      }
-
-      // Min/Max length for strings
-      if (rules.minLength && value.length < rules.minLength) {
-        errors.push(`${field} phải có ít nhất ${rules.minLength} ký tự`);
-      }
-      if (rules.maxLength && value.length > rules.maxLength) {
-        errors.push(`${field} không được vượt quá ${rules.maxLength} ký tự`);
-      }
-
-      // Custom validation
-      if (rules.custom && !rules.custom(value)) {
-        errors.push(rules.customMessage || `${field} không hợp lệ`);
-      }
-    }
-
-    if (errors.length > 0) {
-      throw new ApiError(HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.VALIDATION_ERROR, {
-        errors,
-      });
-    }
-
-    next();
-  };
-}
+export const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  
+  if (!errors.isEmpty()) {
+    return res.status(HTTP_STATUS.BAD_REQUEST).json({
+      success: false,
+      message: ERROR_MESSAGES.VALIDATION_ERROR || 'Dữ liệu không hợp lệ',
+      errors: errors.array(),
+    });
+  }
+  
+  next();
+};
 
