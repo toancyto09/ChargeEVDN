@@ -19,6 +19,7 @@ import ResetPasswordPage from './features/auth/pages/ResetPasswordPage';
 import GoogleCallbackPage from './features/auth/pages/GoogleCallbackPage';
 import DashboardPage from './features/dashboard/pages/DashboardPage';
 import MapPage from './features/map/pages/MapPage';
+import { ProfilePage } from './features/profile/pages';
 import BottomNav from './components/layout/BottomNav';
 
 function App() {
@@ -235,6 +236,12 @@ function AppContent() {
               ) : (
                 <Navigate to="/login" />
               )
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              isLoggedIn ? <ProfilePage /> : <Navigate to="/login" />
             }
           />
         </Routes>

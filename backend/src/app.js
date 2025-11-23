@@ -25,6 +25,7 @@ import logger from './utils/logger.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import aiRoutes from './modules/ai/ai.routes.js';
 import stationRoutes from './modules/station/station.routes.js';
+import profileRoutes from './modules/user/profile.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -40,6 +41,9 @@ app.use(cors(corsOptions));
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Static files (for uploaded avatars, documents...)
+app.use('/uploads', express.static('public/uploads'));
 
 // Initialize Passport
 configurePassport();
@@ -90,6 +94,7 @@ app.get('/api/test-db', async (req, res, next) => {
 // API ROUTES
 // ============================
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/stations', stationRoutes);
 
