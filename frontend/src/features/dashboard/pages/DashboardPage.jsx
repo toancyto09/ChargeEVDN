@@ -4,6 +4,7 @@ import { authAPI } from '../../../services/api';
 import { toast } from 'sonner';
 import { User, LogOut, Car, MapPin, Calendar, Star, Settings } from 'lucide-react';
 import { isTokenExpired } from '../../../utils/tokenHelper';
+import SOCIndicator from '../components/SOCIndicator';
 
 export default function DashboardPage() {
   const [user, setUser] = useState(null);
@@ -14,6 +15,7 @@ export default function DashboardPage() {
     nearbyStations: 0,
     reviews: 0,
   });
+  const [mainVehicle, setMainVehicle] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -76,6 +78,10 @@ export default function DashboardPage() {
           ...prev,
           vehicles: vehiclesData.data.length,
         }));
+        
+        // Get main vehicle for SOC indicator
+        const main = vehiclesData.data.find(v => v.la_xe_chinh) || vehiclesData.data[0];
+        setMainVehicle(main);
       }
 
       // TODO: Load other stats when APIs are ready
@@ -227,6 +233,16 @@ export default function DashboardPage() {
             iconColor="text-yellow-600"
           />
         </div>
+
+        {/* SOC Indicator - Show if user has vehicles */}
+        {mainVehicle && (
+          <div className="mb-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              Xe của bạn
+            </h3>
+            <SOCIndicator vehicle={mainVehicle} />
+          </div>
+        )}
 
         {/* Action Cards */}
         <div>

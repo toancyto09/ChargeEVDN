@@ -7,6 +7,7 @@ import { FilterPanel } from '../components/FilterPanel';
 import { StationList } from '../components/StationList';
 import { BottomSheet } from '../components/BottomSheet';
 import LocationSourceBadge from '../components/LocationSourceBadge';
+import SOCWidget from '../components/SOCWidget';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useResponsive } from '../../../hooks/useResponsive';
 import { stationsAPI, aiAPI } from '../../../services/api';
@@ -47,7 +48,7 @@ export default function MapPage() {
       connectorType: 'all',
       powerRange: 'all',
       maxPrice: 10000,
-      maxDistance: 50, // Increased from 20km to 50km
+      maxDistance: 50,
       batteryLevel: 50,
       minRating: 0,
       providers: [],
@@ -90,10 +91,11 @@ export default function MapPage() {
     }
   }, [error]);
 
-  // Mới: Luôn fetch danh sách trạm thường cho map/lọc classic
+  // Fetch stations from API
   useEffect(() => {
     const fetchStations = async () => {
       if (!userLocation) return;
+
       try {
         const response = await stationsAPI.getAll({
           lat: userLocation.lat,
@@ -105,11 +107,12 @@ export default function MapPage() {
             filters.connectorType !== 'all' ? filters.connectorType : undefined,
           status: filters.status !== 'all' ? filters.status : undefined,
         });
-        // ✅ FIX: Transform dữ liệu từ backend sang frontend format
-        setDisplayedStations(transformStationsArray(response.data?.data || []));
+        
+        const transformed = transformStationsArray(response.data?.data || []);
+        setDisplayedStations(transformed);
       } catch (error) {
-        setDisplayedStations([]);
         console.error('Failed to fetch stations:', error);
+        setDisplayedStations([]);
       }
     };
     fetchStations();
@@ -132,9 +135,11 @@ export default function MapPage() {
           radius: filters.maxDistance,
           limit: 10,
         });
-        // ✅ FIX: Transform dữ liệu AI recommendations
-        setAiRecommendations(transformStationsArray(response.data?.data || []));
+        
+        const transformed = transformStationsArray(response.data?.data || []);
+        setAiRecommendations(transformed);
       } catch (err) {
+        console.error('Failed to fetch AI recommendations:', err);
         setAiError(err.response?.data?.message || 'Không thể tải đề xuất AI');
         setAiRecommendations([]);
       } finally {
@@ -142,13 +147,13 @@ export default function MapPage() {
       }
     };
 
-    // ✅ Debounce: Delay 500ms sau khi filters thay đổi
+    // Debounce: Delay 500ms sau khi filters thay đổi
     const timeoutId = setTimeout(() => {
       fetchAIRecommendations();
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [userLocation, filters]);
+  }, [userLocation, filters.batteryLevel, filters.maxPrice, filters.maxDistance]);
 
   const handleSearch = (query) => {
     setSearchTerm(query);
@@ -358,6 +363,17 @@ export default function MapPage() {
         loading={aiLoading}
         error={aiError}
       />
+      
+      {/* SOC Widget - Only show for logged in users */}
+      {isLoggedIn && (
+        <SOCWidget
+          onSOCChange={(newSOC) => {
+            // Update filters with new SOC
+            setFilters(prev => ({ ...prev, batteryLevel: newSOC }));
+            // This will trigger AI recommendations refresh via useEffect
+          }}
+        />
+      )}
     </div>
   );
 }

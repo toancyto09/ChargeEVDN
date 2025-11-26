@@ -37,6 +37,17 @@ export const getRecommendations = asyncHandler(async (req, res) => {
   const radiusValue = parseFloatWithDefault(radius, DEFAULTS.RADIUS);
   const limitValue = parseIntWithDefault(limit, DEFAULTS.LIMIT);
 
+  console.log('🔵 AI CONTROLLER: GET /api/ai/recommendations');
+  console.log('🔵 AI CONTROLLER: Params:', {
+    userId,
+    lat: userLat,
+    lng: userLng,
+    soc: socValue,
+    maxPrice: maxPriceValue,
+    radius: radiusValue,
+    limit: limitValue,
+  });
+  
   logger.request('AI Recommendations', req.method, {
     userId,
     lat: userLat,
@@ -54,6 +65,9 @@ export const getRecommendations = asyncHandler(async (req, res) => {
     radiusKm: radiusValue,
     limit: limitValue,
   });
+
+  console.log('✅ AI CONTROLLER: Returning', result.data?.length || 0, 'recommendations');
+  console.log('✅ AI CONTROLLER: Metadata:', result.metadata);
 
   res.status(HTTP_STATUS.OK).json(result);
 });

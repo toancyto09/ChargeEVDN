@@ -22,6 +22,7 @@ export async function getStations(params = {}) {
   } = params;
 
   try {
+    console.log('🔵 BACKEND STATION SERVICE: Get Stations Request', params);
     logger.debug('Get Stations Request', params);
 
     const query = `
@@ -77,9 +78,19 @@ export async function getStations(params = {}) {
 
     logger.query(fullQuery, values);
 
+    console.log('🔵 BACKEND STATION SERVICE: Executing query...');
+    console.log('🔵 BACKEND STATION SERVICE: Full query:', fullQuery);
+    console.log('🔵 BACKEND STATION SERVICE: Query values:', values);
+    
     const result = await pool.query(fullQuery, values);
     let stations = result.rows;
 
+    console.log('✅ BACKEND STATION SERVICE: Query result - Found', stations.length, 'stations');
+    if (stations.length > 0) {
+      console.log('✅ BACKEND STATION SERVICE: First station sample:', stations[0]);
+    } else {
+      console.log('⚠️ BACKEND STATION SERVICE: No stations found in database query!');
+    }
     logger.success(`Found ${stations.length} stations`);
 
     // Calculate distance and filter by radius if lat/lng provided
@@ -100,6 +111,7 @@ export async function getStations(params = {}) {
         })
         .filter((station) => station.khoang_cach_km <= parseFloat(radius));
 
+      console.log(`✅ BACKEND STATION SERVICE: Filtered to ${stations.length} stations within ${radius}km`);
       logger.debug(`Filtered to ${stations.length} stations within ${radius}km`);
 
       // Sort by distance
@@ -109,9 +121,11 @@ export async function getStations(params = {}) {
     // Filter by minimum rating
     if (minRating > 0) {
       stations = stations.filter((s) => s.diem_trung_binh >= parseFloat(minRating));
+      console.log(`✅ BACKEND STATION SERVICE: Filtered to ${stations.length} stations with rating >= ${minRating}`);
       logger.debug(`Filtered to ${stations.length} stations with rating >= ${minRating}`);
     }
 
+    console.log('✅ BACKEND STATION SERVICE: Final result - Returning', stations.length, 'stations');
     return stations;
   } catch (error) {
     logger.error('Get Stations Error', error);

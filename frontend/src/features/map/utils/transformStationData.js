@@ -104,7 +104,10 @@ export const transformStationData = (apiStation) => {
  * Transform array of stations
  */
 export const transformStationsArray = (apiStations) => {
-  if (!Array.isArray(apiStations)) return [];
+  if (!Array.isArray(apiStations)) {
+    return [];
+  }
+  
   return apiStations.map(transformStationData).filter(Boolean);
 };
 

@@ -13,9 +13,13 @@ import { asyncHandler, ApiError } from '../../middlewares/errorHandler.middlewar
  * Get all stations with optional filtering
  */
 export const getAllStations = asyncHandler(async (req, res) => {
+  console.log('🔵 BACKEND STATION CONTROLLER: GET /api/stations');
+  console.log('🔵 BACKEND STATION CONTROLLER: Query params:', req.query);
   logger.request('GET', req.originalUrl);
 
   const stations = await stationService.getStations(req.query);
+
+  console.log('✅ BACKEND STATION CONTROLLER: Returning', stations.length, 'stations');
 
   res.status(HTTP_STATUS.OK).json({
     success: true,

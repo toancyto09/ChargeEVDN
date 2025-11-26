@@ -196,6 +196,7 @@ export const getAIRecommendations = async ({
 
     // 1. Get user's vehicle (or default)
     const vehicle = await getUserMainVehicle(userId);
+    console.log('✅ AI SERVICE: User vehicle connector:', vehicle.ma_cong);
 
     // 2. Query suitable stations
     const sql = `
@@ -222,9 +223,19 @@ export const getAIRecommendations = async ({
       HAVING COUNT(cs.id_cong_sac) > 0
     `;
 
+    console.log('🔵 AI SERVICE: Executing query with params:', {
+      connector: vehicle.ma_cong,
+      maxPrice,
+      radiusKm,
+    });
+    
     const result = await pool.query(sql, [vehicle.ma_cong, maxPrice]);
     let stations = result.rows;
 
+    console.log('✅ AI SERVICE: Query result - Found', stations.length, 'candidate stations');
+    if (stations.length > 0) {
+      console.log('✅ AI SERVICE: First station sample:', stations[0]);
+    }
     logger.ai(`Found ${stations.length} candidate stations`);
 
     // 2.5. Hard cap radius when battery is critically low
@@ -252,6 +263,8 @@ export const getAIRecommendations = async ({
     const maxPriceActual = prices.length > 0 ? Math.max(...prices) : maxPrice;
 
     // 4. Score each station
+    console.log('🔵 AI SERVICE: Scoring', stations.length, 'stations...');
+    
     stations = stations
       .map((station) => {
         // Distance
@@ -264,7 +277,11 @@ export const getAIRecommendations = async ({
 
         // Port compatibility (filter incompatible stations)
         const portMatch = station.loai_cong?.includes(vehicle.ma_cong) ? 1 : 0;
-        if (!portMatch) return null;
+        
+        if (!portMatch) {
+          console.log(`⚠️ AI SERVICE: Station "${station.ten_tram}" filtered out - connector mismatch. Has: [${station.loai_cong}], Need: ${vehicle.ma_cong}`);
+          return null;
+        }
 
         // Price score (normalized)
         const priceNorm =
@@ -338,11 +355,13 @@ export const getAIRecommendations = async ({
       stations = stations.filter((s) => s.khoang_cach_km <= radiusKm);
     }
 
+    console.log(`✅ AI SERVICE: Filtered to ${stations.length} stations after rating/radius filters`);
     logger.ai(`Filtered to ${stations.length} stations after rating/radius filters`);
 
     // 6. Sort by AI score and limit
     stations = stations.sort((a, b) => b.ai_score - a.ai_score).slice(0, limit);
 
+    console.log(`✅ AI SERVICE: Returning ${stations.length} AI recommendations`);
     logger.ai(`Returning ${stations.length} AI recommendations`);
 
     return {

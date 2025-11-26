@@ -61,7 +61,7 @@ export const SCORING = {
 export const DEFAULTS = {
   // Default vehicle configuration for guest users
   VEHICLE: {
-    CONNECTOR: 'CCS2',
+    CONNECTOR: 'Type 2', // Changed from CCS2 to match database
     BATTERY_KWH: 60,
     MAX_POWER: 50,
   },
