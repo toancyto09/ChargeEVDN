@@ -13,6 +13,8 @@ export default function RoutingControl({ origin, destination, onRouteFound, onRo
   const map = useMap();
   const routingControlRef = useRef(null);
   const polylineRef = useRef(null);
+  const previousOriginRef = useRef(null);
+  const updateTimeoutRef = useRef(null);
   const onRouteFoundRef = useRef(onRouteFound);
   const onRouteErrorRef = useRef(onRouteError);
 
@@ -22,14 +24,31 @@ export default function RoutingControl({ origin, destination, onRouteFound, onRo
     onRouteErrorRef.current = onRouteError;
   }, [onRouteFound, onRouteError]);
 
+  // Calculate distance between two points (km)
+  const calculateDistance = (point1, point2) => {
+    if (!point1 || !point2) return 0;
+    const R = 6371;
+    const dLat = (point2.lat - point1.lat) * Math.PI / 180;
+    const dLon = (point2.lng - point1.lng) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(point1.lat * Math.PI / 180) * 
+      Math.cos(point2.lat * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  // Effect 1: Create routing control (only once)
   useEffect(() => {
     if (!origin || !destination || !map) return;
     
-    // Prevent multiple routing controls
+    // Only create if doesn't exist
     if (routingControlRef.current) {
-      console.log('⚠️ Routing control already exists, skipping...');
       return;
     }
+    
+    console.log('🆕 Creating routing control...');
 
     // Create routing control
     const routingControl = L.Routing.control({
@@ -141,39 +160,87 @@ export default function RoutingControl({ origin, destination, onRouteFound, onRo
       console.log('🔵 Routing started...');
     });
 
-    // Cleanup function
+    // Store initial origin
+    previousOriginRef.current = { ...origin };
+
+    // Cleanup on unmount only
     return () => {
       console.log('🧹 Cleaning up routing control...');
       
-      // Remove polyline first
-      if (map && polylineRef.current) {
+      if (polylineRef.current) {
         try {
           map.removeLayer(polylineRef.current);
           polylineRef.current = null;
-          console.log('🧹 Polyline removed');
         } catch (error) {
           console.warn('⚠️ Polyline cleanup error:', error.message);
         }
       }
       
-      // Remove routing control
-      if (map && routingControlRef.current) {
+      if (routingControlRef.current) {
         try {
-          // Remove event listeners first
           routingControlRef.current.off('routesfound');
           routingControlRef.current.off('routingerror');
           routingControlRef.current.off('routingstart');
-          
-          // Remove from map
           map.removeControl(routingControlRef.current);
           routingControlRef.current = null;
         } catch (error) {
-          // Silently suppress the error - this is a known bug in leaflet-routing-machine
           console.warn('⚠️ Routing cleanup error (expected):', error.message);
         }
       }
     };
-  }, [origin, destination, map]); // Remove onRouteFound, onRouteError from deps
+  }, [destination, map]); // Only depend on destination and map, NOT origin
+
+  // Effect 2: Update route when origin changes (real-time tracking)
+  useEffect(() => {
+    if (!origin || !destination || !map || !routingControlRef.current) return;
+
+    // Check if moved significantly
+    if (previousOriginRef.current) {
+      const distanceMoved = calculateDistance(previousOriginRef.current, origin);
+      
+      // Only update if moved more than 50 meters
+      if (distanceMoved < 0.05) {
+        return; // Not enough movement
+      }
+      
+      console.log(`📍 Moved ${(distanceMoved * 1000).toFixed(0)}m, updating route...`);
+    }
+
+    // Clear existing timeout
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
+
+    // Debounce: Wait 3 seconds before updating
+    updateTimeoutRef.current = setTimeout(() => {
+      if (routingControlRef.current && polylineRef.current) {
+        try {
+          // Update waypoints (this triggers automatic re-routing)
+          routingControlRef.current.setWaypoints([
+            L.latLng(origin.lat, origin.lng),
+            L.latLng(destination.lat, destination.lng),
+          ]);
+          
+          // Remove old polyline
+          map.removeLayer(polylineRef.current);
+          polylineRef.current = null;
+          
+          // Store new origin
+          previousOriginRef.current = { ...origin };
+          
+          console.log('🔄 Route updated with new origin');
+        } catch (error) {
+          console.error('❌ Error updating route:', error);
+        }
+      }
+    }, 3000);
+
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, [origin]); // Only depend on origin changes
 
   return null; // This component doesn't render anything
 }
