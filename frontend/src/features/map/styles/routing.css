@@ -1,0 +1,75 @@
+/**
+ * Custom styles for Leaflet Routing Machine
+ * Hide default UI elements and customize route appearance
+ */
+
+/* Hide the default routing container */
+.leaflet-routing-container-hidden {
+  display: none !important;
+}
+
+/* Force routing line to be visible */
+.leaflet-routing-container {
+  display: none !important;
+}
+
+/* Ensure routing line is visible on map */
+.leaflet-overlay-pane .leaflet-routing-line {
+  display: block !important;
+  z-index: 400 !important;
+  pointer-events: auto !important;
+}
+
+/* Style the routing line */
+path.leaflet-interactive {
+  stroke: #3B82F6 !important;
+  stroke-width: 5 !important;
+  stroke-opacity: 0.9 !important;
+  fill: none !important;
+}
+
+/* Hide the default routing alternatives container */
+.leaflet-routing-alternatives-container {
+  display: none !important;
+}
+
+/* Customize route line on hover */
+.leaflet-routing-container {
+  display: none;
+}
+
+/* If we want to show instructions later, style them here */
+.leaflet-routing-container.show-instructions {
+  display: block;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: white;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  max-width: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+/* Route line animation */
+@keyframes route-pulse {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Custom marker styles (if needed) */
+.leaflet-routing-icon {
+  background-color: #3B82F6;
+  border: 3px solid white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+}
+

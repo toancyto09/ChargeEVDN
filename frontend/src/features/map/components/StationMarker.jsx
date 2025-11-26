@@ -1,6 +1,7 @@
 import { Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { MapPin, Star, Zap, Clock, DollarSign } from 'lucide-react';
+import { MapPin, Star, Zap, Clock, DollarSign, Route } from 'lucide-react';
+import { calculateDistance, formatDistance, estimateDrivingTime } from '../utils/navigation';
 
 // Create custom icon with highlight support
 const createCustomIcon = (provider, isHighlighted) => {
@@ -70,6 +71,8 @@ export default function StationMarker({
   station,
   onStationClick,
   isHighlighted,
+  userLocation,
+  onShowRoute,
 }) {
   // Safe position check
   const position = Array.isArray(station.position) 
@@ -143,13 +146,53 @@ export default function StationMarker({
               <span className="text-gray-600">{station.openHours}</span>
             </div>
           </div>
-          <div className="mb-3 text-sm text-gray-600">📍 Cách bạn {station.distance} km</div>
-          <button
-            onClick={() => onStationClick && onStationClick(station)}
-            className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white py-2 rounded-lg font-medium transition-all"
-          >
-            Xem chi tiết
-          </button>
+          {/* Distance & Time Estimate */}
+          {userLocation && (
+            <div className="mb-3 p-2 bg-blue-50 rounded-lg">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-1.5 text-gray-700">
+                  <MapPin className="w-4 h-4 text-blue-600" />
+                  <span className="font-medium">
+                    {formatDistance(calculateDistance(userLocation, { lat: position[0], lng: position[1] }))}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-gray-700">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                  <span className="font-medium">
+                    ~{estimateDrivingTime(calculateDistance(userLocation, { lat: position[0], lng: position[1] }))} phút
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            {/* Show Route Button */}
+            {userLocation && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onShowRoute) {
+                    onShowRoute(station);
+                  }
+                }}
+                className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors"
+                title="Xem đường đi trên bản đồ"
+              >
+                <Route className="w-4 h-4" />
+                Xem đường đi
+              </button>
+            )}
+            
+            {/* Details Button */}
+            <button
+              onClick={() => onStationClick && onStationClick(station)}
+              className={`${userLocation ? 'flex-1' : 'w-full'} bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white py-2 rounded-lg font-medium transition-all`}
+            >
+              Chi tiết
+            </button>
+          </div>
         </div>
       </Popup>
     </Marker>

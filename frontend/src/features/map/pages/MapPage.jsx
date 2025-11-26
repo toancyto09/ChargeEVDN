@@ -29,6 +29,11 @@ export default function MapPage() {
   // Map state
   const [mapCenter, setMapCenter] = useState([16.0775118, 108.2127375]);
   const [highlightedStationId, setHighlightedStationId] = useState(null);
+  
+  // Routing state
+  const [routeDestination, setRouteDestination] = useState(null);
+  const [routeStationName, setRouteStationName] = useState('');
+  const [routeInfo, setRouteInfo] = useState(null);
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -198,6 +203,45 @@ export default function MapPage() {
     toast.success(`Đã chọn: ${station.name}`);
   };
 
+  // Handler: Show route on map
+  const handleShowRoute = (station) => {
+    if (!userLocation) {
+      toast.error('Không thể xác định vị trí của bạn');
+      return;
+    }
+
+    // Get station position
+    const position = Array.isArray(station.position)
+      ? { lat: station.position[0], lng: station.position[1] }
+      : { lat: station.vi_do || station.lat, lng: station.kinh_do || station.lng };
+
+    setRouteDestination(position);
+    setRouteStationName(station.name || station.ten_tram);
+    setHighlightedStationId(station.id || station.id_tram);
+    toast.info('Đang tính toán lộ trình...');
+  };
+
+  // Handler: Route found callback
+  const handleRouteFound = (info) => {
+    setRouteInfo(info);
+    toast.success(`Tìm thấy lộ trình: ${info.distance} km • ${info.duration} phút`);
+  };
+
+  // Handler: Route error callback
+  const handleRouteError = (message) => {
+    toast.error(message || 'Không thể tìm đường đi');
+    setRouteDestination(null);
+    setRouteInfo(null);
+  };
+
+  // Handler: Clear route
+  const handleClearRoute = () => {
+    setRouteDestination(null);
+    setRouteInfo(null);
+    setRouteStationName('');
+    toast.info('Đã xóa lộ trình');
+  };
+
   // Handler: Về vị trí hiện tại
   const handleMyLocation = () => {
     if (userLocation) {
@@ -297,6 +341,13 @@ export default function MapPage() {
               onStationClick={handleStationClick}
               highlightedStationId={highlightedStationId}
               onMyLocationClick={handleMyLocation}
+              routeDestination={routeDestination}
+              routeStationName={routeStationName}
+              onRouteFound={handleRouteFound}
+              onRouteError={handleRouteError}
+              onClearRoute={handleClearRoute}
+              routeInfo={routeInfo}
+              onShowRoute={handleShowRoute}
             />
           </div>
         </div>
@@ -332,6 +383,13 @@ export default function MapPage() {
               onStationClick={handleStationClick}
               highlightedStationId={highlightedStationId}
               onMyLocationClick={handleMyLocation}
+              routeDestination={routeDestination}
+              routeStationName={routeStationName}
+              onRouteFound={handleRouteFound}
+              onRouteError={handleRouteError}
+              onClearRoute={handleClearRoute}
+              routeInfo={routeInfo}
+              onShowRoute={handleShowRoute}
             />
           </div>
 
@@ -343,6 +401,7 @@ export default function MapPage() {
               highlightedStationId={highlightedStationId}
               sortBy={sortBy}
               onSortChange={setSortBy}
+              userLocation={userLocation}
             />
           </BottomSheet>
 

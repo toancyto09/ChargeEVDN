@@ -131,35 +131,33 @@ export default function SOCWidget({ onSOCChange }) {
   }
 
   return (
-    <div className="fixed bottom-24 left-4 z-[1000]">
-      <div
-        className={`bg-white rounded-2xl shadow-2xl border-2 transition-all duration-300 ${getBatteryBg(soc)} ${
-          isExpanded ? 'w-80' : 'w-auto'
-        }`}
-      >
-        {/* Collapsed View */}
-        {!isExpanded && (
-          <button
-            onClick={() => setIsExpanded(true)}
-            className="flex items-center gap-3 p-4 hover:bg-black/5 transition-colors rounded-2xl w-full"
-          >
-            <div className={`p-2 rounded-full bg-gradient-to-br ${getBatteryGradient(soc)}`}>
-              <Battery className="w-6 h-6 text-white" />
+    <div className="fixed bottom-32 sm:bottom-24 left-4 z-[999]">
+      {/* Collapsed View - Circular */}
+      {!isExpanded && (
+        <button
+          onClick={() => setIsExpanded(true)}
+          className="relative w-20 h-20 rounded-full hover:scale-105 transition-all duration-300 shadow-2xl"
+          style={{
+            background: `conic-gradient(
+              ${soc >= 80 ? '#10b981' : soc >= 50 ? '#3b82f6' : soc >= 20 ? '#eab308' : '#ef4444'} ${soc * 3.6}deg,
+              #e5e7eb ${soc * 3.6}deg
+            )`
+          }}
+        >
+          {/* Inner white circle */}
+          <div className="absolute inset-2 bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
+            <Battery className={`w-6 h-6 mb-0.5 ${getBatteryColor(soc)}`} />
+            <div className={`text-sm font-bold ${getBatteryColor(soc)}`}>
+              {soc}%
             </div>
-            <div className="text-left">
-              <div className={`text-2xl font-bold ${getBatteryColor(soc)}`}>
-                {soc}%
-              </div>
-              <div className="text-xs text-gray-600">
-                {mainVehicle.hang_xe} {mainVehicle.dong_xe}
-              </div>
-            </div>
-            <ChevronUp className="w-5 h-5 text-gray-400 ml-2" />
-          </button>
-        )}
+          </div>
+        </button>
+      )}
 
-        {/* Expanded View */}
-        {isExpanded && (
+      {/* Expanded View */}
+      {isExpanded && (
+        <div className={`bg-white rounded-2xl shadow-2xl border-2 w-80 transition-all duration-300 ${getBatteryBg(soc)} animate-scale-in`}>
+
           <div className="p-4 space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between">
@@ -255,8 +253,8 @@ export default function SOCWidget({ onSOCChange }) {
               </button>
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

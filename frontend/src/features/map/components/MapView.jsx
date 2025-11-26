@@ -3,7 +3,10 @@ import { useEffect, useRef } from 'react';
 import StationMarker from './StationMarker';
 import UserLocationMarker from './UserLocationMarker';
 import MapControls from './MapControls';
+import RoutingControl from './RoutingControl';
+import RouteInfoPanel from './RouteInfoPanel';
 import 'leaflet/dist/leaflet.css';
+import '../styles/routing.css';
 
 // Component to handle map center changes
 function MapController({ center }) {
@@ -26,6 +29,13 @@ export default function MapView({
   onStationClick,
   highlightedStationId,
   onMyLocationClick,
+  routeDestination,
+  routeStationName,
+  onRouteFound,
+  onRouteError,
+  onClearRoute,
+  routeInfo,
+  onShowRoute,
 }) {
   return (
     <MapContainer
@@ -56,8 +66,29 @@ export default function MapView({
           station={station}
           onStationClick={onStationClick}
           isHighlighted={station.id === highlightedStationId}
+          userLocation={userLocation}
+          onShowRoute={onShowRoute}
         />
       ))}
+
+      {/* Routing Control */}
+      {userLocation && routeDestination && (
+        <RoutingControl
+          origin={userLocation}
+          destination={routeDestination}
+          onRouteFound={onRouteFound}
+          onRouteError={onRouteError}
+        />
+      )}
+
+      {/* Route Info Panel */}
+      {routeInfo && (
+        <RouteInfoPanel
+          routeInfo={routeInfo}
+          stationName={routeStationName}
+          onClear={onClearRoute}
+        />
+      )}
 
       {/* Map controls */}
       <MapControls
