@@ -28,6 +28,20 @@ router.get(
 );
 
 /**
+ * @route   GET /api/stations/:id/detail
+ * @desc    Get station detail (full information)
+ * @access  Public
+ * @params  id (station ID)
+ * 
+ * Example: /api/stations/1/detail
+ */
+router.get(
+  '/:id/detail',
+  asyncHandler(validateStationIdParam),
+  stationController.getStationDetail
+);
+
+/**
  * @route   GET /api/stations/:id
  * @desc    Get station by ID
  * @access  Public

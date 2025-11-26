@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import VehicleCard from '../components/VehicleCard';
 import AddVehicleModal from '../components/AddVehicleModal';
 import EditVehicleModal from '../components/EditVehicleModal';
+import PageLayout from '../../../components/layout/PageLayout';
 
 export default function VehiclesPage() {
   const navigate = useNavigate();
@@ -231,7 +232,7 @@ export default function VehiclesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <PageLayout className="bg-gray-50">
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-10 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -312,7 +313,7 @@ export default function VehiclesPage() {
         vehicle={selectedVehicle}
         connectorTypes={connectorTypes}
       />
-    </div>
+    </PageLayout>
   );
 }
 

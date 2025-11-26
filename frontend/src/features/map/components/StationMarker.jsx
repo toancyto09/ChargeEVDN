@@ -1,6 +1,7 @@
 import { Marker, Popup } from 'react-leaflet';
+import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
-import { MapPin, Star, Zap, Clock, DollarSign, Route } from 'lucide-react';
+import { MapPin, Star, Zap, Clock, DollarSign, Route, Info } from 'lucide-react';
 import { calculateDistance, formatDistance, estimateDrivingTime } from '../utils/navigation';
 
 // Create custom icon with highlight support
@@ -74,6 +75,7 @@ export default function StationMarker({
   userLocation,
   onShowRoute,
 }) {
+  const navigate = useNavigate();
   // Safe position check
   const position = Array.isArray(station.position) 
     ? station.position 
@@ -102,70 +104,45 @@ export default function StationMarker({
       }}
     >
       <Popup>
-        <div className="p-2 min-w-[280px]">
+        <div className="p-3 min-w-[260px]">
           {/* Header */}
           <div className="mb-3">
-            <h3 className="font-bold text-lg mb-1">{station.name}</h3>
-            <div className="flex items-center gap-2 text-sm">
+            <h3 className="font-bold text-base mb-2">{station.name}</h3>
+            <div className="flex items-center gap-2 text-sm mb-2">
               <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
               <span className="font-semibold">{station.rating}</span>
-              <span className="text-gray-500">({station.reviews} đánh giá)</span>
+              <span className="text-gray-500">({station.reviews})</span>
             </div>
           </div>
-          {/* Address */}
-          <div className="flex items-start gap-2 mb-3 text-sm">
-            <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-            <span className="text-gray-600">{station.address}</span>
+
+          {/* Status Badge */}
+          <div className="flex items-center justify-between mb-3 pb-3 border-b">
+            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
+              {statusInfo.text}
+            </span>
+            <span className="text-sm font-semibold text-gray-700">
+              {totalAvailable}/{totalSlots} slots
+            </span>
           </div>
-          {/* Status */}
-          <div className="flex items-center justify-between mb-3">
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>{statusInfo.text}</span>
-            <span className="text-sm text-gray-600">{totalAvailable}/{totalSlots} slots</span>
-          </div>
-          {/* Connectors */}
-          <div className="mb-3">
-            <p className="text-xs text-gray-500 mb-2">Loại cổng sạc:</p>
-            <div className="flex flex-wrap gap-2">
-              {connectors.map((connector, idx) => (
-                <div key={idx} className="flex items-center gap-1.5 text-xs px-2 py-1 bg-gray-50 border border-gray-200 rounded">
-                  <Zap size={12} className="text-emerald-600" />
-                  <span className="font-medium">{connector.type}</span>
-                  <span className="text-gray-500">• {connector.power}kW</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* Price & Hours */}
+
+          {/* Quick Info */}
           <div className="space-y-2 mb-3 text-sm">
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-emerald-600" />
-              <span className="font-semibold">{station.price?.toLocaleString('vi-VN')} đ/kWh</span>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Giá điện</span>
+              <span className="font-semibold text-emerald-600">
+                {station.price?.toLocaleString('vi-VN')} đ/kWh
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-blue-600" />
-              <span className="text-gray-600">{station.openHours}</span>
-            </div>
-          </div>
-          {/* Distance & Time Estimate */}
-          {userLocation && (
-            <div className="mb-3 p-2 bg-blue-50 rounded-lg">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-1.5 text-gray-700">
-                  <MapPin className="w-4 h-4 text-blue-600" />
-                  <span className="font-medium">
-                    {formatDistance(calculateDistance(userLocation, { lat: position[0], lng: position[1] }))}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-gray-700">
-                  <Clock className="w-4 h-4 text-blue-600" />
-                  <span className="font-medium">
-                    ~{estimateDrivingTime(calculateDistance(userLocation, { lat: position[0], lng: position[1] }))} phút
-                  </span>
-                </div>
+            {userLocation && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Khoảng cách</span>
+                <span className="font-semibold text-blue-600">
+                  {formatDistance(calculateDistance(userLocation, { lat: position[0], lng: position[1] }))}
+                </span>
               </div>
-            </div>
-          )}
-          
+            )}
+          </div>
+
           {/* Action Buttons */}
           <div className="flex gap-2">
             {/* Show Route Button */}
@@ -177,19 +154,23 @@ export default function StationMarker({
                     onShowRoute(station);
                   }
                 }}
-                className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium transition-colors"
-                title="Xem đường đi trên bản đồ"
+                className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors"
+                title="Xem đường đi"
               >
                 <Route className="w-4 h-4" />
-                Xem đường đi
+                Đường đi
               </button>
             )}
-            
+
             {/* Details Button */}
             <button
-              onClick={() => onStationClick && onStationClick(station)}
-              className={`${userLocation ? 'flex-1' : 'w-full'} bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white py-2 rounded-lg font-medium transition-all`}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/stations/${station.id || station.id_tram}`);
+              }}
+              className={`${userLocation ? 'flex-1' : 'w-full'} flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white py-2 rounded-lg text-sm font-medium transition-all`}
             >
+              <Info className="w-4 h-4" />
               Chi tiết
             </button>
           </div>

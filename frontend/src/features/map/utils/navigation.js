@@ -4,6 +4,77 @@
  */
 
 /**
+ * Detect user's platform
+ * @returns {'ios' | 'android' | 'web'}
+ */
+export const getPlatform = () => {
+  const ua = navigator.userAgent;
+  if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
+  if (/android/i.test(ua)) return 'android';
+  return 'web';
+};
+
+/**
+ * Open navigation in external app (Google Maps, Apple Maps)
+ * Works on iOS, Android, and Desktop
+ * 100% FREE - No API key needed
+ * 
+ * @param {Object} origin - Starting point {lat, lng}
+ * @param {Object} destination - Destination point {lat, lng}
+ * @param {string} stationName - Name of the destination station
+ */
+export const openNavigation = (origin, destination, stationName = 'Trạm sạc') => {
+  if (!origin || !destination) {
+    console.error('Origin or destination is missing');
+    return;
+  }
+
+  const platform = getPlatform();
+  const originStr = `${origin.lat},${origin.lng}`;
+  const destStr = `${destination.lat},${destination.lng}`;
+  
+  let url;
+  
+  switch (platform) {
+    case 'ios':
+      // Apple Maps (iOS)
+      url = `maps://maps.apple.com/?saddr=${originStr}&daddr=${destStr}&dirflg=d`;
+      break;
+      
+    case 'android':
+      // Google Maps (Android app)
+      url = `google.navigation:q=${destStr}&mode=d`;
+      break;
+      
+    default:
+      // Google Maps Web (Universal - works everywhere)
+      url = `https://www.google.com/maps/dir/?api=1&origin=${originStr}&destination=${destStr}&travelmode=driving`;
+      break;
+  }
+  
+  try {
+    if (platform === 'web') {
+      // Desktop: Open in new tab
+      window.open(url, '_blank');
+    } else {
+      // Mobile: Try to open native app
+      window.location.href = url;
+      
+      // Fallback to Google Maps web if app not installed (after 2s)
+      setTimeout(() => {
+        const fallbackUrl = `https://www.google.com/maps/dir/?api=1&origin=${originStr}&destination=${destStr}&travelmode=driving`;
+        window.open(fallbackUrl, '_blank');
+      }, 2000);
+    }
+  } catch (error) {
+    console.error('Failed to open navigation:', error);
+    // Final fallback: Always try Google Maps web
+    const fallbackUrl = `https://www.google.com/maps/dir/?api=1&origin=${originStr}&destination=${destStr}&travelmode=driving`;
+    window.open(fallbackUrl, '_blank');
+  }
+};
+
+/**
  * Calculate straight-line distance between two points (Haversine formula)
  * @param {Object} point1 - First point {lat, lng}
  * @param {Object} point2 - Second point {lat, lng}

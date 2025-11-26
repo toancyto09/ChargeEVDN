@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import AvatarUpload from '../components/AvatarUpload';
 import ProfileForm from '../components/ProfileForm';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import PageLayout from '../../../components/layout/PageLayout';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -96,7 +97,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <PageLayout className="bg-gray-50">
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-10 border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-3">
@@ -266,7 +267,7 @@ export default function ProfilePage() {
 
       {/* Change Password Modal */}
       <ChangePasswordModal isOpen={showPasswordModal} onClose={() => setShowPasswordModal(false)} />
-    </div>
+    </PageLayout>
   );
 }
 

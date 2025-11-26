@@ -3,7 +3,7 @@
  * Business logic for station-related operations
  */
 
-import pool from '../../config/db.js';
+import { pool } from '../../config/db.js';
 import logger from '../../utils/logger.js';
 import { calculateDistance } from '../../utils/helpers.js';
 
@@ -169,6 +169,91 @@ export async function getStationById(id) {
     return result.rows[0];
   } catch (error) {
     logger.error(`Get Station ${id} Error`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get Station Detail (Full information)
+ */
+export async function getStationDetail(id) {
+  try {
+    logger.debug(`Get Station Detail: ${id}`);
+
+    // Main station info (only existing columns in schema)
+    const stationQuery = `
+      SELECT
+        ts.id_tram,
+        ts.ten_tram,
+        ts.dia_chi,
+        ts.kinh_do,
+        ts.vi_do,
+        COALESCE(AVG(dg.diem_so), 0) as diem_trung_binh,
+        COUNT(DISTINCT dg.id_danh_gia) as so_danh_gia,
+        COALESCE(hsg.gia_kwh, 0) as gia_kwh,
+        COALESCE(hsg.phi_cho_phut, 0) as phi_cho_phut
+      FROM tram_sac ts
+        LEFT JOIN lich_su_gia_tram hsg 
+               ON hsg.id_tram = ts.id_tram
+              AND hsg.hieu_luc_tu <= NOW()
+              AND (hsg.hieu_luc_den IS NULL OR hsg.hieu_luc_den >= NOW())
+              AND hsg.trang_thai='active'
+        LEFT JOIN danh_gia dg ON dg.id_tram = ts.id_tram
+      WHERE ts.id_tram = $1
+      GROUP BY ts.id_tram, hsg.gia_kwh, hsg.phi_cho_phut
+    `;
+
+    const stationResult = await pool.query(stationQuery, [id]);
+
+    if (stationResult.rows.length === 0) {
+      return null;
+    }
+
+    const station = stationResult.rows[0];
+
+    // Get connectors with details (only existing columns)
+    const connectorsQuery = `
+      SELECT
+        lcs.ma_cong as loai_cong,
+        lcs.mo_ta,
+        cs.cong_suat_kwh as cong_suat_kw,
+        COUNT(cs.id_cong_sac) as tong_cong,
+        COUNT(CASE WHEN cs.trang_thai = 'trong' THEN 1 END) as cong_trong,
+        COUNT(CASE WHEN cs.trang_thai = 'dang_su_dung' THEN 1 END) as dang_su_dung,
+        COUNT(CASE WHEN cs.trang_thai = 'bao_tri' THEN 1 END) as bao_tri
+      FROM cong_sac cs
+        JOIN loai_cong_sac lcs ON lcs.id_loai_cong = cs.id_loai_cong
+      WHERE cs.id_tram = $1
+      GROUP BY lcs.ma_cong, lcs.mo_ta, cs.cong_suat_kwh
+      ORDER BY cs.cong_suat_kwh DESC
+    `;
+
+    const connectorsResult = await pool.query(connectorsQuery, [id]);
+
+    // Get images (if hinh_anh table exists)
+    const imagesQuery = `
+      SELECT url_hinh_anh
+      FROM hinh_anh
+      WHERE id_doi_tuong = $1 AND loai_doi_tuong = 'station'
+      ORDER BY thu_tu
+    `;
+
+    let images = [];
+    try {
+      const imagesResult = await pool.query(imagesQuery, [id]);
+      images = imagesResult.rows.map((row) => row.url_hinh_anh);
+    } catch (err) {
+      // If hinh_anh table doesn't exist, just skip
+      logger.debug('Images table not found or error fetching images');
+    }
+
+    return {
+      ...station,
+      connectors: connectorsResult.rows,
+      images,
+    };
+  } catch (error) {
+    logger.error(`Get Station Detail ${id} Error`, error);
     throw error;
   }
 }

@@ -21,6 +21,7 @@ import DashboardPage from './features/dashboard/pages/DashboardPage';
 import MapPage from './features/map/pages/MapPage';
 import { ProfilePage } from './features/profile/pages';
 import { VehiclesPage } from './features/vehicles/pages';
+import { StationDetailPage } from './features/station/pages';
 import BottomNav from './components/layout/BottomNav';
 
 function App() {
@@ -61,7 +62,8 @@ function AppContent() {
     location.pathname === '/notifications' ||
     location.pathname === '/settings' ||
     location.pathname === '/route' ||
-    location.pathname === '/vehicles';
+    location.pathname === '/vehicles' ||
+    location.pathname.startsWith('/stations/');
 
   const isAuthPage =
     location.pathname === '/login' ||
@@ -250,6 +252,12 @@ function AppContent() {
             path="/vehicles"
             element={
               isLoggedIn ? <VehiclesPage /> : <Navigate to="/login" />
+            }
+          />
+          <Route
+            path="/stations/:id"
+            element={
+              isLoggedIn ? <StationDetailPage /> : <Navigate to="/login" />
             }
           />
         </Routes>

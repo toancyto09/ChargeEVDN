@@ -72,6 +72,7 @@ export const authAPI = {
 export const stationsAPI = {
   getAll: (params) => api.get('/api/stations', { params }),
   getById: (id) => api.get(`/api/stations/${id}`),
+  getStationDetail: (id) => api.get(`/api/stations/${id}/detail`),
   create: (stationData) => api.post('/api/stations', stationData),
   update: (id, stationData) => api.put(`/api/stations/${id}`, stationData),
   delete: (id) => api.delete(`/api/stations/${id}`),

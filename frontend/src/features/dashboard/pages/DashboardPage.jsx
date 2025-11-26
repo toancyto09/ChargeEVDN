@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { User, LogOut, Car, MapPin, Calendar, Star, Settings } from 'lucide-react';
 import { isTokenExpired } from '../../../utils/tokenHelper';
 import SOCIndicator from '../components/SOCIndicator';
+import PageLayout from '../../../components/layout/PageLayout';
 
 export default function DashboardPage() {
   const [user, setUser] = useState(null);
@@ -117,7 +118,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <PageLayout className="bg-gray-50">
       {/* Header with Gradient */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
@@ -312,7 +313,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }
 
