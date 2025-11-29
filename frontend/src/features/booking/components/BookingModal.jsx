@@ -1,0 +1,317 @@
+import { useState, useEffect } from 'react';
+import { X, Calendar, Clock, Zap, Battery, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { bookingAPI } from '../../../services/api';
+
+export default function BookingModal({ isOpen, onClose, station, connector, vehicle }) {
+  const [loading, setLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  const [duration, setDuration] = useState(1); // hours
+  const [estimatedKwh, setEstimatedKwh] = useState(0);
+  const [estimatedCost, setEstimatedCost] = useState(0);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Set default date to TODAY (not tomorrow)
+      const today = new Date();
+      setSelectedDate(today.toISOString().split('T')[0]);
+      
+      // Set default time to next available slot (30 min from now)
+      const now = new Date();
+      const nextSlot = new Date(now);
+      nextSlot.setMinutes(Math.ceil(now.getMinutes() / 30) * 30 + 30); // Next 30-min slot + 30 min buffer
+      const hours = nextSlot.getHours().toString().padStart(2, '0');
+      const minutes = nextSlot.getMinutes().toString().padStart(2, '0');
+      setSelectedTime(`${hours}:${minutes}`);
+      
+      // Calculate initial estimates
+      calculateEstimates(1);
+    }
+  }, [isOpen]);
+
+  const calculateEstimates = (durationHours) => {
+    if (!vehicle || !connector || !station) return;
+
+    // Estimate kWh based on connector power and duration
+    const connectorPowerKw = parseFloat(connector.cong_suat_kwh) || 0;
+    const kWh = Math.min(
+      connectorPowerKw * durationHours,
+      parseFloat(vehicle.dung_luong_pin_kwh) || 0
+    );
+    
+    setEstimatedKwh(kWh);
+    
+    // Calculate cost
+    const pricePerKwh = parseFloat(station.gia_kwh) || 0;
+    setEstimatedCost(kWh * pricePerKwh);
+  };
+
+  const handleDurationChange = (e) => {
+    const hours = parseFloat(e.target.value);
+    setDuration(hours);
+    calculateEstimates(hours);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedDate || !selectedTime) {
+      toast.error('Vui lòng chọn ngày và giờ');
+      return;
+    }
+
+    if (!vehicle) {
+      toast.error('Vui lòng chọn phương tiện');
+      return;
+    }
+
+    if (!connector || !connector.id_cong_sac) {
+      console.error('Connector data:', connector);
+      toast.error('Không tìm thấy cổng sạc khả dụng. Vui lòng thử lại.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Combine date and time with proper timezone handling
+      // Parse as local time (Vietnam timezone)
+      const [year, month, day] = selectedDate.split('-').map(Number);
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+      
+      const startDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
+      const now = new Date();
+      
+      // Validate 1: Not in the past
+      if (startDateTime < now) {
+        toast.error('Không thể đặt chỗ trong quá khứ');
+        setLoading(false);
+        return;
+      }
+
+      // Validate 2: At least 15 minutes from now
+      const minAdvanceTime = new Date(now);
+      minAdvanceTime.setMinutes(minAdvanceTime.getMinutes() + 15);
+      
+      if (startDateTime < minAdvanceTime) {
+        toast.error('Vui lòng đặt chỗ ít nhất 15 phút trước giờ sạc');
+        setLoading(false);
+        return;
+      }
+
+      // Validate 3: Maximum 6 hours in advance (EV charging doesn't need booking too far ahead)
+      const maxAdvanceTime = new Date(now);
+      maxAdvanceTime.setHours(maxAdvanceTime.getHours() + 6);
+      
+      if (startDateTime > maxAdvanceTime) {
+        toast.error(
+          'Chỉ có thể đặt chỗ trong vòng 6 giờ tới. ' +
+          'Đặt chỗ sạc xe không cần book quá xa!',
+          { duration: 5000 }
+        );
+        setLoading(false);
+        return;
+      }
+
+      const endDateTime = new Date(startDateTime);
+      // Convert duration (hours) to minutes and add
+      const durationMinutes = duration * 60;
+      endDateTime.setMinutes(endDateTime.getMinutes() + durationMinutes);
+
+      console.log('🕐 Start time (local):', startDateTime);
+      console.log('🕐 End time (local):', endDateTime);
+      console.log('🕐 Duration (hours):', duration, '→', durationMinutes, 'minutes');
+      console.log('🕐 Start ISO:', startDateTime.toISOString());
+      console.log('🕐 End ISO:', endDateTime.toISOString());
+
+      const bookingData = {
+        id_phuong_tien: parseInt(vehicle.id_phuong_tien),
+        id_cong_sac: parseInt(connector.id_cong_sac),
+        thoi_gian_bat_dau: startDateTime.toISOString(),
+        thoi_gian_ket_thuc: endDateTime.toISOString(),
+        uoc_tinh_kwh: parseFloat(estimatedKwh),
+      };
+
+      console.log('📤 Booking data:', bookingData);
+
+      const response = await bookingAPI.create(bookingData);
+
+      if (response.data.success) {
+        toast.success('Đặt chỗ thành công!');
+        onClose();
+        
+        // Redirect to bookings page after 1 second
+        setTimeout(() => {
+          window.location.href = '/bookings';
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Booking error:', error);
+      toast.error(error.response?.data?.message || 'Đặt chỗ thất bại');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[1002] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 rounded-t-2xl">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-2xl font-bold mb-1">Đặt chỗ sạc</h2>
+              <p className="text-blue-100 text-sm">{station?.ten_tram}</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Station & Connector Info */}
+          <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Loại cổng:</span>
+              <span className="font-semibold">{connector?.loai_cong}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Công suất:</span>
+              <span className="font-semibold">{connector?.cong_suat_kwh} kW</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Giá:</span>
+              <span className="font-semibold text-green-600">
+                {station?.gia_kwh?.toLocaleString('vi-VN')} đ/kWh
+              </span>
+            </div>
+          </div>
+
+          {/* Vehicle Info */}
+          {vehicle && (
+            <div className="bg-blue-50 rounded-xl p-4 space-y-2">
+              <div className="flex items-center gap-2 text-blue-900 font-semibold mb-2">
+                <Battery className="w-5 h-5" />
+                <span>Phương tiện</span>
+              </div>
+              <div className="text-sm space-y-1">
+                <p><span className="text-gray-600">Xe:</span> {vehicle.hang_xe} {vehicle.dong_xe}</p>
+                <p><span className="text-gray-600">Biển số:</span> {vehicle.bien_so || 'N/A'}</p>
+                <p><span className="text-gray-600">Pin:</span> {vehicle.dung_luong_pin_kwh} kWh</p>
+              </div>
+            </div>
+          )}
+
+          {/* Date Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Calendar className="w-4 h-4 inline mr-2" />
+              Ngày sạc
+            </label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              max={(() => {
+                const today = new Date();
+                // Allow booking for today only (6h window is enough)
+                return today.toISOString().split('T')[0];
+              })()}
+              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Time Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Clock className="w-4 h-4 inline mr-2" />
+              Giờ bắt đầu
+            </label>
+            <input
+              type="time"
+              value={selectedTime}
+              onChange={(e) => setSelectedTime(e.target.value)}
+              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Chỉ có thể đặt chỗ trong vòng 6 giờ tới
+            </p>
+          </div>
+
+          {/* Duration Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Zap className="w-4 h-4 inline mr-2" />
+              Thời gian sạc (giờ)
+            </label>
+            <select
+              value={duration}
+              onChange={handleDurationChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="0.5">30 phút</option>
+              <option value="1">1 giờ</option>
+              <option value="1.5">1.5 giờ</option>
+              <option value="2">2 giờ</option>
+              <option value="3">3 giờ</option>
+              <option value="4">4 giờ</option>
+            </select>
+          </div>
+
+          {/* Estimates */}
+          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 space-y-3 border-2 border-emerald-200">
+            <h3 className="font-semibold text-emerald-900 mb-2">Ước tính</h3>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700">Điện năng:</span>
+              <span className="font-bold text-emerald-700">~{estimatedKwh.toFixed(1)} kWh</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700">Chi phí:</span>
+              <span className="font-bold text-emerald-700 text-lg">
+                ~{estimatedCost.toLocaleString('vi-VN')} đ
+              </span>
+            </div>
+          </div>
+
+          {/* Warning */}
+          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800">
+              Vui lòng đến trước giờ đặt chỗ 15 phút. Đặt chỗ sẽ tự động hủy nếu bạn không check-in đúng giờ.
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Đang xử lý...' : 'Xác nhận đặt chỗ'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+

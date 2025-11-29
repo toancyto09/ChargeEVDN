@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Clock, Phone, Star, Navigation as NavigationIcon, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { stationsAPI } from '../../../services/api';
+import { stationsAPI, vehiclesAPI } from '../../../services/api';
 import StationInfo from '../components/StationInfo';
 import ConnectorList from '../components/ConnectorList';
 import { openNavigation } from '../../map/utils/navigation';
 import PageLayout from '../../../components/layout/PageLayout';
+import BookingModal from '../../booking/components/BookingModal';
 
 export default function StationDetailPage() {
   const { id } = useParams();
@@ -14,11 +15,28 @@ export default function StationDetailPage() {
   const [station, setStation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [selectedConnector, setSelectedConnector] = useState(null);
+  const [mainVehicle, setMainVehicle] = useState(null);
 
   useEffect(() => {
     loadStationDetail();
     getUserLocation();
+    loadMainVehicle();
   }, [id]);
+
+  const loadMainVehicle = async () => {
+    try {
+      const response = await vehiclesAPI.getAll();
+      if (response.data.success && response.data.data.length > 0) {
+        // Get the main vehicle or first vehicle
+        const mainVeh = response.data.data.find(v => v.la_xe_chinh) || response.data.data[0];
+        setMainVehicle(mainVeh);
+      }
+    } catch (error) {
+      console.error('Error loading vehicle:', error);
+    }
+  };
 
   const getUserLocation = () => {
     if (navigator.geolocation) {
@@ -218,7 +236,40 @@ export default function StationDetailPage() {
               </button>
             )}
             <button
-              onClick={() => toast.info('Tính năng đặt chỗ đang phát triển')}
+              onClick={() => {
+                if (!mainVehicle) {
+                  toast.error('Vui lòng thêm phương tiện trước');
+                  setTimeout(() => navigate('/vehicles'), 1000);
+                  return;
+                }
+                
+                // Find connector that MATCHES vehicle type AND is available
+                const availableConn = station.connectors?.find(c => 
+                  parseInt(c.cong_trong) > 0 && 
+                  c.loai_cong === mainVehicle.ma_cong
+                );
+                
+                if (!availableConn) {
+                  // Check if station has this connector type at all
+                  const hasConnectorType = station.connectors?.some(c => c.loai_cong === mainVehicle.ma_cong);
+                  
+                  if (!hasConnectorType) {
+                    toast.error(
+                      `Trạm này không có cổng ${mainVehicle.ma_cong}. Xe của bạn cần cổng ${mainVehicle.ma_cong} để sạc.`,
+                      { duration: 5000 }
+                    );
+                  } else {
+                    toast.error(
+                      `Tất cả cổng ${mainVehicle.ma_cong} đang được sử dụng. Vui lòng thử lại sau.`,
+                      { duration: 4000 }
+                    );
+                  }
+                  return;
+                }
+                
+                setSelectedConnector(availableConn);
+                setShowBookingModal(true);
+              }}
               className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-3 sm:py-3.5 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95"
             >
               <Clock className="w-5 h-5" />
@@ -227,6 +278,17 @@ export default function StationDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Booking Modal */}
+      {showBookingModal && selectedConnector && (
+        <BookingModal
+          isOpen={showBookingModal}
+          onClose={() => setShowBookingModal(false)}
+          station={station}
+          connector={selectedConnector}
+          vehicle={mainVehicle}
+        />
+      )}
     </PageLayout>
   );
 }

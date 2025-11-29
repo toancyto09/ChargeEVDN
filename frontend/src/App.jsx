@@ -22,6 +22,7 @@ import MapPage from './features/map/pages/MapPage';
 import { ProfilePage } from './features/profile/pages';
 import { VehiclesPage } from './features/vehicles/pages';
 import { StationDetailPage } from './features/station/pages';
+import MyBookingsPage from './features/booking/pages/MyBookingsPage';
 import BottomNav from './components/layout/BottomNav';
 
 function App() {
@@ -63,6 +64,7 @@ function AppContent() {
     location.pathname === '/settings' ||
     location.pathname === '/route' ||
     location.pathname === '/vehicles' ||
+    location.pathname === '/bookings' ||
     location.pathname.startsWith('/stations/');
 
   const isAuthPage =
@@ -258,6 +260,12 @@ function AppContent() {
             path="/stations/:id"
             element={
               isLoggedIn ? <StationDetailPage /> : <Navigate to="/login" />
+            }
+          />
+          <Route
+            path="/bookings"
+            element={
+              isLoggedIn ? <MyBookingsPage /> : <Navigate to="/login" />
             }
           />
         </Routes>

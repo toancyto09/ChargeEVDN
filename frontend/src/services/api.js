@@ -126,4 +126,27 @@ export const aiAPI = {
     api.get(`/api/ai/recommendations/explain/${stationId}`, { params }),
 };
 
+// Booking API
+export const bookingAPI = {
+  // Create a new booking
+  create: (bookingData) => api.post('/api/bookings', bookingData),
+  
+  // Get user's bookings
+  getMyBookings: (params) => api.get('/api/bookings', { params }),
+  
+  // Get booking by ID
+  getById: (id) => api.get(`/api/bookings/${id}`),
+  
+  // Extend booking expiry (for late arrivals)
+  extend: (id, extension_minutes = 15) => 
+    api.post(`/api/bookings/${id}/extend`, { extension_minutes }),
+  
+  // Cancel booking
+  cancel: (id) => api.delete(`/api/bookings/${id}`),
+  
+  // Get available time slots for a connector
+  getAvailableSlots: (connectorId, date) => 
+    api.get(`/api/bookings/connector/${connectorId}/slots`, { params: { date } }),
+};
+
 export default api;

@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Route, Map, Bell, Settings } from 'lucide-react';
+import { Home, Calendar, Map, Bell, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function BottomNav() {
@@ -14,9 +14,9 @@ export default function BottomNav() {
       label: 'Home',
     },
     {
-      path: '/route',
-      icon: Route,
-      label: 'Lộ trình',
+      path: '/bookings',
+      icon: Calendar,
+      label: 'Đặt chỗ',
     },
     {
       path: '/map',

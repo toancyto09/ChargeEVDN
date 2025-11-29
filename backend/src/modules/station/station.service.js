@@ -216,11 +216,12 @@ export async function getStationDetail(id) {
       SELECT
         lcs.ma_cong as loai_cong,
         lcs.mo_ta,
-        cs.cong_suat_kwh as cong_suat_kw,
+        cs.cong_suat_kwh,
         COUNT(cs.id_cong_sac) as tong_cong,
         COUNT(CASE WHEN cs.trang_thai = 'trong' THEN 1 END) as cong_trong,
         COUNT(CASE WHEN cs.trang_thai = 'dang_su_dung' THEN 1 END) as dang_su_dung,
-        COUNT(CASE WHEN cs.trang_thai = 'bao_tri' THEN 1 END) as bao_tri
+        COUNT(CASE WHEN cs.trang_thai = 'bao_tri' THEN 1 END) as bao_tri,
+        MIN(CASE WHEN cs.trang_thai = 'trong' THEN cs.id_cong_sac END) as id_cong_sac
       FROM cong_sac cs
         JOIN loai_cong_sac lcs ON lcs.id_loai_cong = cs.id_loai_cong
       WHERE cs.id_tram = $1

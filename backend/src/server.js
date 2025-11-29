@@ -2,6 +2,7 @@ import app from './app.js';
 import { connectDB, closeDB } from './config/db.js';
 import dotenv from 'dotenv';
 import { verifyEmailConfig } from './utils/emailService.js';
+import { startCleanupJob } from './jobs/cleanupExpiredBookings.js';
 
 // Sau dòng await connectDB();
 console.log('\n📧 Checking email configuration...');
@@ -25,6 +26,11 @@ const startServer = async () => {
 
     console.log('\n📧 Checking email configuration...');
     await verifyEmailConfig();
+    
+    // Start cron jobs
+    console.log('\n⏰ Starting scheduled jobs...');
+    startCleanupJob();
+    
     // Start server
     const server = app.listen(PORT, () => {
       console.log(

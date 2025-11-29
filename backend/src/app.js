@@ -27,6 +27,7 @@ import aiRoutes from './modules/ai/ai.routes.js';
 import stationRoutes from './modules/station/station.routes.js';
 import profileRoutes from './modules/user/profile.routes.js';
 import vehicleRoutes from './modules/vehicle/vehicle.routes.js';
+import bookingRoutes from './modules/booking/booking.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -99,6 +100,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/stations', stationRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 logger.info('✅ All routes registered');
 
