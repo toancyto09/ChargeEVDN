@@ -149,4 +149,24 @@ export const bookingAPI = {
     api.get(`/api/bookings/connector/${connectorId}/slots`, { params: { date } }),
 };
 
+// Rating API
+export const ratingAPI = {
+  // Create a new rating
+  create: (ratingData) => api.post('/api/ratings', ratingData),
+  
+  // Get ratings for a station
+  getStationRatings: (stationId, params) => 
+    api.get(`/api/ratings/station/${stationId}`, { params }),
+  
+  // Get average rating for a station
+  getStationAverage: (stationId) => 
+    api.get(`/api/ratings/station/${stationId}/average`),
+  
+  // Get user's ratings
+  getMyRatings: (params) => api.get('/api/ratings/my', { params }),
+  
+  // Check if user can rate a booking
+  canRate: (bookingId) => api.get(`/api/ratings/can-rate/${bookingId}`),
+};
+
 export default api;

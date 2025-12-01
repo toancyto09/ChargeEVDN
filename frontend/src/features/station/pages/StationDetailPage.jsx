@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, Clock, Phone, Star, Navigation as NavigationIcon, Share2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Phone, Star, Navigation as NavigationIcon, Share2, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { stationsAPI, vehiclesAPI } from '../../../services/api';
+import { stationsAPI, vehiclesAPI, ratingAPI } from '../../../services/api';
 import StationInfo from '../components/StationInfo';
 import ConnectorList from '../components/ConnectorList';
 import { openNavigation } from '../../map/utils/navigation';
 import PageLayout from '../../../components/layout/PageLayout';
 import BookingModal from '../../booking/components/BookingModal';
+import ReviewCard from '../../rating/components/ReviewCard';
+import StarRating from '../../rating/components/StarRating';
 
 export default function StationDetailPage() {
   const { id } = useParams();
@@ -18,11 +20,15 @@ export default function StationDetailPage() {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedConnector, setSelectedConnector] = useState(null);
   const [mainVehicle, setMainVehicle] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [ratingsSummary, setRatingsSummary] = useState(null);
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
   useEffect(() => {
     loadStationDetail();
     getUserLocation();
     loadMainVehicle();
+    loadReviews();
   }, [id]);
 
   const loadMainVehicle = async () => {
@@ -35,6 +41,22 @@ export default function StationDetailPage() {
       }
     } catch (error) {
       console.error('Error loading vehicle:', error);
+    }
+  };
+
+  const loadReviews = async () => {
+    try {
+      setLoadingReviews(true);
+      const response = await ratingAPI.getStationRatings(id, { limit: 3 });
+      
+      if (response.data.success) {
+        setReviews(response.data.data.ratings || []);
+        setRatingsSummary(response.data.data.summary || null);
+      }
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+    } finally {
+      setLoadingReviews(false);
     }
   };
 
@@ -217,6 +239,77 @@ export default function StationDetailPage() {
 
         {/* Connectors */}
         <ConnectorList connectors={station.connectors || []} />
+
+        {/* Reviews Section */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 sm:p-6 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+                  Đánh giá từ người dùng
+                </h2>
+                {ratingsSummary && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <Star className="w-6 h-6 fill-amber-400 text-amber-400" />
+                      <span className="text-2xl font-bold text-gray-900">
+                        {parseFloat(ratingsSummary.diem_trung_binh || 0).toFixed(1)}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {ratingsSummary.tong_danh_gia || 0} đánh giá
+                    </div>
+                  </div>
+                )}
+              </div>
+              {reviews.length > 0 && (
+                <button
+                  onClick={() => navigate(`/stations/${id}/reviews`)}
+                  className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                >
+                  <span>Xem tất cả</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Reviews List */}
+          <div className="p-4 sm:p-6">
+            {loadingReviews ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <p className="text-sm text-gray-600">Đang tải đánh giá...</p>
+              </div>
+            ) : reviews.length === 0 ? (
+              <div className="text-center py-12">
+                <Star className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-gray-600 font-medium mb-2">
+                  Chưa có đánh giá nào
+                </p>
+                <p className="text-sm text-gray-500">
+                  Hãy là người đầu tiên đánh giá trạm sạc này!
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {reviews.map((review) => (
+                  <ReviewCard key={review.id_danh_gia} review={review} />
+                ))}
+                
+                {parseInt(ratingsSummary?.tong_danh_gia || 0) > 3 && (
+                  <button
+                    onClick={() => navigate(`/stations/${id}/reviews`)}
+                    className="w-full py-3 text-center text-blue-600 hover:text-blue-700 font-medium text-sm border-t border-gray-100 hover:bg-blue-50 transition-colors rounded-b-xl"
+                  >
+                    Xem thêm {parseInt(ratingsSummary.tong_danh_gia) - 3} đánh giá khác →
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Additional Info */}
         <StationInfo station={station} />

@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Zap, X, Loader, ArrowUpDown, SlidersHorizontal, Timer } from 'lucide-react';
+import { Calendar, Clock, MapPin, Zap, X, Loader, ArrowUpDown, SlidersHorizontal, Timer, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { bookingAPI } from '../../../services/api';
 import PageLayout from '../../../components/layout/PageLayout';
 import ExpiryCountdown from '../components/ExpiryCountdown';
 import ExtendBookingModal from '../components/ExtendBookingModal';
+import RatingModal from '../../rating/components/RatingModal';
 
 export default function MyBookingsPage() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function MyBookingsPage() {
   const [sortBy, setSortBy] = useState('date_desc'); // date_desc, date_asc, price_desc, price_asc
   const [showFilters, setShowFilters] = useState(false);
   const [extendModalOpen, setExtendModalOpen] = useState(false);
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
 
   useEffect(() => {
@@ -65,6 +67,16 @@ export default function MyBookingsPage() {
       b.id_dat_cho === updatedBooking.id_dat_cho ? updatedBooking : b
     ));
     loadBookings(); // Reload to get fresh data
+  };
+
+  const handleRateBooking = (booking) => {
+    setSelectedBooking(booking);
+    setRatingModalOpen(true);
+  };
+
+  const handleRatingSuccess = () => {
+    // Reload bookings to update rating status
+    loadBookings();
   };
 
   const getStatusBadge = (status) => {
@@ -254,6 +266,7 @@ export default function MyBookingsPage() {
               booking={booking}
               onCancel={handleCancelBooking}
               onExtend={handleExtendBooking}
+              onRate={handleRateBooking}
               getStatusBadge={getStatusBadge}
               canCancel={canCancelBooking(booking)}
             />
@@ -268,11 +281,19 @@ export default function MyBookingsPage() {
         booking={selectedBooking}
         onExtendSuccess={handleExtendSuccess}
       />
+
+      {/* Rating Modal */}
+      <RatingModal
+        isOpen={ratingModalOpen}
+        onClose={() => setRatingModalOpen(false)}
+        booking={selectedBooking}
+        onRatingSuccess={handleRatingSuccess}
+      />
     </PageLayout>
   );
 }
 
-function BookingCard({ booking, onCancel, onExtend, getStatusBadge, canCancel }) {
+function BookingCard({ booking, onCancel, onExtend, onRate, getStatusBadge, canCancel }) {
   const navigate = useNavigate();
   
   const startTime = new Date(booking.thoi_gian_bat_dau);
@@ -395,6 +416,17 @@ function BookingCard({ booking, onCancel, onExtend, getStatusBadge, canCancel })
           >
             <Timer className="w-4 h-4" />
             Gia hạn
+          </button>
+        )}
+        
+        {/* Rating button - only for completed bookings */}
+        {booking.trang_thai === 'hoan_thanh' && !booking.da_danh_gia && (
+          <button
+            onClick={() => onRate(booking)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-yellow-50 hover:bg-yellow-100 text-yellow-600 rounded-lg font-medium text-sm transition-colors"
+          >
+            <Star className="w-4 h-4" />
+            Đánh giá
           </button>
         )}
         

@@ -23,6 +23,7 @@ import { ProfilePage } from './features/profile/pages';
 import { VehiclesPage } from './features/vehicles/pages';
 import { StationDetailPage } from './features/station/pages';
 import MyBookingsPage from './features/booking/pages/MyBookingsPage';
+import StationReviewsPage from './features/rating/pages/StationReviewsPage';
 import BottomNav from './components/layout/BottomNav';
 
 function App() {
@@ -267,6 +268,10 @@ function AppContent() {
             element={
               isLoggedIn ? <MyBookingsPage /> : <Navigate to="/login" />
             }
+          />
+          <Route
+            path="/stations/:id/reviews"
+            element={<StationReviewsPage />}
           />
         </Routes>
       </main>
