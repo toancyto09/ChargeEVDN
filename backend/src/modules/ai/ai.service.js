@@ -135,31 +135,41 @@ function generateReasons({
 }) {
   const reasons = [];
 
+  // ✅ Parse all numeric values (database returns strings)
+  const parsedDistance = parseFloat(distance) || 0;
+  const parsedPrice = parseFloat(price) || 0;
+  const parsedRating = parseFloat(rating) || 0;
+  const parsedAvailable = parseInt(availableConnectors) || 0;
+  const parsedTotal = parseInt(totalConnectors) || 0;
+  const parsedChargeTime = parseFloat(chargeTimeMinutes) || 0;
+  const parsedMinPrice = parseFloat(minPrice) || 0;
+  const parsedMaxPrice = parseFloat(maxPrice) || 0;
+
   // Distance
-  if (distance < 2) {
-    reasons.push(REASON_TEMPLATES.NEAR(distance));
+  if (parsedDistance < 2) {
+    reasons.push(REASON_TEMPLATES.NEAR(parsedDistance));
   }
 
   // Available connectors
-  if (availableConnectors > 0) {
+  if (parsedAvailable > 0) {
     reasons.push(
-      REASON_TEMPLATES.AVAILABLE(availableConnectors, totalConnectors)
+      REASON_TEMPLATES.AVAILABLE(parsedAvailable, parsedTotal)
     );
   }
 
   // Fast charging
-  if (chargeTimeMinutes < SCORING.FAST_CHARGE_THRESHOLD) {
+  if (parsedChargeTime < SCORING.FAST_CHARGE_THRESHOLD) {
     reasons.push(REASON_TEMPLATES.FAST_CHARGE(SCORING.FAST_CHARGE_THRESHOLD));
   }
 
   // Good price (in bottom 25% of price range)
-  if (price < minPrice + (maxPrice - minPrice) * 0.25) {
-    reasons.push(REASON_TEMPLATES.GOOD_PRICE(price));
+  if (parsedPrice < parsedMinPrice + (parsedMaxPrice - parsedMinPrice) * 0.25) {
+    reasons.push(REASON_TEMPLATES.GOOD_PRICE(parsedPrice));
   }
 
   // High rating
-  if (rating >= SCORING.HIGH_RATING_THRESHOLD) {
-    reasons.push(REASON_TEMPLATES.HIGH_RATING(rating.toFixed(1)));
+  if (parsedRating >= SCORING.HIGH_RATING_THRESHOLD) {
+    reasons.push(REASON_TEMPLATES.HIGH_RATING(parsedRating.toFixed(1)));
   }
 
   // User history

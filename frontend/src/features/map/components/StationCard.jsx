@@ -61,6 +61,16 @@ export function StationCard({
             <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
               <MapPin size={14} className="flex-shrink-0" />
               <span className="truncate">{station.distance || 0} km</span>
+              {station.rating && (
+                <>
+                  <span>•</span>
+                  <Star size={14} className="flex-shrink-0 fill-yellow-400 text-yellow-400" />
+                  <span className="font-medium">{station.rating}</span>
+                  {station.totalReviews && (
+                    <span className="text-gray-400">({station.totalReviews})</span>
+                  )}
+                </>
+              )}
               <span>•</span>
               <DollarSign size={14} className="flex-shrink-0" />
               <span>{station.price ? station.price.toLocaleString('vi-VN') : '--'}đ/kWh</span>

@@ -442,6 +442,21 @@ class BookingService {
    * Update booking (for admin/system)
    */
   async updateBookingStatus(bookingId, status) {
+    // Get current booking info first
+    const bookingQuery = `
+      SELECT id_cong_sac, trang_thai 
+      FROM dat_cho 
+      WHERE id_dat_cho = $1
+    `;
+    const bookingResult = await pool.query(bookingQuery, [bookingId]);
+    
+    if (bookingResult.rows.length === 0) {
+      throw new Error('Booking not found');
+    }
+
+    const booking = bookingResult.rows[0];
+
+    // Update booking status
     const query = `
       UPDATE dat_cho
       SET trang_thai = $1
@@ -450,9 +465,84 @@ class BookingService {
     `;
 
     const result = await pool.query(query, [status, bookingId]);
+
+    // ✅ FREE CONNECTOR when booking is completed or cancelled
+    if (['hoan_thanh', 'huy'].includes(status)) {
+      await pool.query(
+        `UPDATE cong_sac SET trang_thai = 'trong' WHERE id_cong_sac = $1`,
+        [booking.id_cong_sac]
+      );
+      console.log(`✅ Released connector ${booking.id_cong_sac} for booking ${bookingId}`);
+    }
+
     return result.rows[0];
   }
+
+  /**
+   * Complete booking and free connector (with transaction)
+   * Called when charging session ends
+   */
+  async completeBooking(bookingId, userId = null) {
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+
+      // Get booking info
+      const bookingResult = await client.query(
+        `SELECT id_cong_sac, trang_thai, id_nguoi_dung 
+         FROM dat_cho 
+         WHERE id_dat_cho = $1`,
+        [bookingId]
+      );
+      
+      if (bookingResult.rows.length === 0) {
+        throw new Error('Booking not found');
+      }
+
+      const booking = bookingResult.rows[0];
+
+      // Validate user ownership if userId provided
+      if (userId && booking.id_nguoi_dung !== userId) {
+        throw new Error('Unauthorized to complete this booking');
+      }
+
+      // Check if already completed or cancelled
+      if (['hoan_thanh', 'huy'].includes(booking.trang_thai)) {
+        throw new Error('Booking is already completed or cancelled');
+      }
+
+      // Update booking to completed
+      await client.query(
+        `UPDATE dat_cho SET trang_thai = 'hoan_thanh' WHERE id_dat_cho = $1`,
+        [bookingId]
+      );
+
+      // ✅ FREE UP CONNECTOR
+      await client.query(
+        `UPDATE cong_sac SET trang_thai = 'trong' WHERE id_cong_sac = $1`,
+        [booking.id_cong_sac]
+      );
+
+      await client.query('COMMIT');
+      
+      console.log(`✅ Booking ${bookingId} completed and connector ${booking.id_cong_sac} released`);
+      
+      return { 
+        success: true, 
+        message: 'Booking completed successfully',
+        booking_id: bookingId,
+        connector_id: booking.id_cong_sac
+      };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
 }
+
 
 export default new BookingService();
 
