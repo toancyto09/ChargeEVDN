@@ -29,6 +29,8 @@ import profileRoutes from './modules/user/profile.routes.js';
 import vehicleRoutes from './modules/vehicle/vehicle.routes.js';
 import bookingRoutes from './modules/booking/booking.routes.js';
 import ratingRoutes from './modules/rating/rating.routes.js';
+import paymentRoutes from './modules/payment/payment.routes.js';
+import sessionRoutes from './modules/session/session.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -103,6 +105,8 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/stations', stationRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/ratings', ratingRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/sessions', sessionRoutes);
 
 logger.info('✅ All routes registered');
 

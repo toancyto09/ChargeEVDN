@@ -189,16 +189,22 @@ CREATE TABLE public.danh_gia (
 
 
 --------------------------------------------------
--- 10. thanh_toan
+-- 10. thanh_toan (UPDATED: Support both booking and session payments)
 --------------------------------------------------
 CREATE TABLE public.thanh_toan (
   id_thanh_toan BIGSERIAL PRIMARY KEY,
-  id_dat_cho BIGINT NOT NULL UNIQUE,
+  id_dat_cho BIGINT,              -- Legacy: booking-based payment (nullable)
+  id_phien_sac BIGINT,             -- New: session-based payment
   so_tien NUMERIC(12,2),
   phuong_thuc VARCHAR(20) DEFAULT 'VNPAY' NOT NULL,
   trang_thai pay_status_enum DEFAULT 'pending' NOT NULL,
   ma_giao_dich VARCHAR(64),
-  ngay_thanh_toan TIMESTAMPTZ
+  ngay_thanh_toan TIMESTAMPTZ,
+  ngay_tao TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT chk_payment_source CHECK (
+    (id_dat_cho IS NOT NULL AND id_phien_sac IS NULL) OR 
+    (id_dat_cho IS NULL AND id_phien_sac IS NOT NULL)
+  )
 );
 
 
@@ -297,6 +303,9 @@ ALTER TABLE danh_gia
 ALTER TABLE thanh_toan 
   ADD CONSTRAINT fk_thanh_toan_dat_cho FOREIGN KEY (id_dat_cho) REFERENCES dat_cho(id_dat_cho);
 
+ALTER TABLE thanh_toan 
+  ADD CONSTRAINT fk_thanh_toan_phien_sac FOREIGN KEY (id_phien_sac) REFERENCES phien_sac(id_phien_sac);
+
 ALTER TABLE hoa_don 
   ADD CONSTRAINT fk_hoa_don_thanh_toan FOREIGN KEY (id_thanh_toan) REFERENCES thanh_toan(id_thanh_toan);
 
@@ -309,5 +318,26 @@ ALTER TABLE lich_su_gia_tram
 
 
 -- ==============================================
+-- ========== 4. INDEXES ========================
+-- ==============================================
+
+-- Index for session-based payment lookups
+CREATE INDEX idx_thanh_toan_phien_sac ON thanh_toan(id_phien_sac) WHERE id_phien_sac IS NOT NULL;
+
+-- Index for booking-based payment lookups
+CREATE INDEX idx_thanh_toan_dat_cho ON thanh_toan(id_dat_cho) WHERE id_dat_cho IS NOT NULL;
+
+-- Index for pending payments
+CREATE INDEX idx_thanh_toan_pending ON thanh_toan(trang_thai) WHERE trang_thai = 'pending';
+
+
+
+-- ==============================================
 -- ========== DONE – 13 TABLES CREATED ===========
 -- ==============================================
+
+-- PAYMENT FLOW NOTES:
+-- - OLD FLOW (booking-based): User pays BEFORE charging
+--   → id_dat_cho is set, id_phien_sac is NULL
+-- - NEW FLOW (session-based): User pays AFTER charging
+--   → id_phien_sac is set, id_dat_cho is NULL

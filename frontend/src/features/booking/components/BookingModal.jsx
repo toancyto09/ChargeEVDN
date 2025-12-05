@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { X, Calendar, Clock, Zap, Battery, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import { bookingAPI } from '../../../services/api';
 
 export default function BookingModal({ isOpen, onClose, station, connector, vehicle }) {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
@@ -83,9 +85,78 @@ export default function BookingModal({ isOpen, onClose, station, connector, vehi
       const startDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
       const now = new Date();
       
+      // ========================================
+      // DEBUG: Log chi tiết để kiểm tra
+      // ========================================
+      console.log('🔍 ========== DEBUG TIME VALIDATION ==========');
+      console.log('📅 Selected Date:', selectedDate);
+      console.log('🕐 Selected Time:', selectedTime);
+      console.log('📊 Parsed values:', { year, month: month - 1, day, hours, minutes });
+      console.log('📅 Start DateTime (Local):', startDateTime.toLocaleString('vi-VN', { 
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }));
+      console.log('📅 Start DateTime (ISO):', startDateTime.toISOString());
+      console.log('📅 Start DateTime (Timestamp):', startDateTime.getTime());
+      console.log('⏰ Current DateTime (Local):', now.toLocaleString('vi-VN', { 
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }));
+      console.log('⏰ Current DateTime (ISO):', now.toISOString());
+      console.log('⏰ Current DateTime (Timestamp):', now.getTime());
+      console.log('⏱️  Time Difference (ms):', startDateTime.getTime() - now.getTime());
+      console.log('⏱️  Time Difference (minutes):', Math.round((startDateTime.getTime() - now.getTime()) / 60000));
+      console.log('🌍 Browser Timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
+      console.log('🔍 ===========================================');
+      
       // Validate 1: Not in the past
       if (startDateTime < now) {
-        toast.error('Không thể đặt chỗ trong quá khứ');
+        const diffMs = now.getTime() - startDateTime.getTime();
+        const diffMinutes = Math.round(diffMs / 60000);
+        const diffHours = Math.floor(diffMinutes / 60);
+        
+        const startTimeFormatted = startDateTime.toLocaleString('vi-VN', {
+          timeZone: 'Asia/Ho_Chi_Minh',
+          hour: '2-digit',
+          minute: '2-digit',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+        
+        const nowTimeFormatted = now.toLocaleString('vi-VN', {
+          timeZone: 'Asia/Ho_Chi_Minh',
+          hour: '2-digit',
+          minute: '2-digit',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+        
+        console.error('❌ VALIDATION FAILED: Past time detected');
+        console.error('   Selected:', startTimeFormatted);
+        console.error('   Current:', nowTimeFormatted);
+        console.error('   Difference:', diffHours > 0 ? `${diffHours} giờ ${diffMinutes % 60} phút` : `${diffMinutes} phút`);
+        
+        toast.error(
+          `Không thể đặt chỗ trong quá khứ! Bạn chọn ${startTimeFormatted} nhưng hiện tại là ${nowTimeFormatted}. Vui lòng chọn thời gian trong tương lai (ít nhất 15 phút nữa).`,
+          { 
+            duration: 8000,
+            description: `Chênh lệch: ${diffHours > 0 ? `${diffHours} giờ ${diffMinutes % 60} phút` : `${diffMinutes} phút`}`
+          }
+        );
         setLoading(false);
         return;
       }
@@ -95,7 +166,25 @@ export default function BookingModal({ isOpen, onClose, station, connector, vehi
       minAdvanceTime.setMinutes(minAdvanceTime.getMinutes() + 15);
       
       if (startDateTime < minAdvanceTime) {
-        toast.error('Vui lòng đặt chỗ ít nhất 15 phút trước giờ sạc');
+        const diffMs = minAdvanceTime.getTime() - startDateTime.getTime();
+        const diffMinutes = Math.round(diffMs / 60000);
+        
+        console.warn('⚠️  VALIDATION WARNING: Less than 15 minutes');
+        console.warn('   Selected:', startDateTime.toLocaleString('vi-VN'));
+        console.warn('   Minimum required:', minAdvanceTime.toLocaleString('vi-VN'));
+        console.warn('   Need to wait:', diffMinutes, 'more minutes');
+        
+        const minTimeFormatted = minAdvanceTime.toLocaleString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          day: '2-digit',
+          month: '2-digit'
+        });
+        
+        toast.error(
+          `Vui lòng đặt chỗ ít nhất 15 phút trước giờ sạc! Thời gian sớm nhất có thể: ${minTimeFormatted}`,
+          { duration: 6000 }
+        );
         setLoading(false);
         return;
       }
@@ -105,14 +194,30 @@ export default function BookingModal({ isOpen, onClose, station, connector, vehi
       maxAdvanceTime.setHours(maxAdvanceTime.getHours() + 6);
       
       if (startDateTime > maxAdvanceTime) {
+        const diffMs = startDateTime.getTime() - maxAdvanceTime.getTime();
+        const diffHours = Math.round(diffMs / 3600000);
+        
+        console.warn('⚠️  VALIDATION WARNING: More than 6 hours ahead');
+        console.warn('   Selected:', startDateTime.toLocaleString('vi-VN'));
+        console.warn('   Maximum allowed:', maxAdvanceTime.toLocaleString('vi-VN'));
+        console.warn('   Too far:', diffHours, 'hours');
+        
+        const maxTimeFormatted = maxAdvanceTime.toLocaleString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          day: '2-digit',
+          month: '2-digit'
+        });
+        
         toast.error(
-          'Chỉ có thể đặt chỗ trong vòng 6 giờ tới. ' +
-          'Đặt chỗ sạc xe không cần book quá xa!',
-          { duration: 5000 }
+          `Chỉ có thể đặt chỗ trong vòng 6 giờ tới! Thời gian muộn nhất có thể: ${maxTimeFormatted}`,
+          { duration: 6000 }
         );
         setLoading(false);
         return;
       }
+      
+      console.log('✅ All validations passed!');
 
       const endDateTime = new Date(startDateTime);
       // Convert duration (hours) to minutes and add
@@ -138,12 +243,17 @@ export default function BookingModal({ isOpen, onClose, station, connector, vehi
       const response = await bookingAPI.create(bookingData);
 
       if (response.data.success) {
-        toast.success('Đặt chỗ thành công!');
+        const booking = response.data.data;
+        
+        // Success - no payment needed now (will pay after charging)
+        toast.success('Đặt chỗ thành công! Bạn sẽ thanh toán sau khi hoàn thành sạc.');
+        
+        // Close modal
         onClose();
         
-        // Redirect to bookings page after 1 second
+        // Navigate to bookings page
         setTimeout(() => {
-          window.location.href = '/bookings';
+          navigate('/bookings');
         }, 1000);
       }
     } catch (error) {

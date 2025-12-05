@@ -284,7 +284,7 @@ export default function DashboardPage() {
               title="Thanh toán"
               description="Quản lý thanh toán và hóa đơn"
               gradient="from-indigo-500 to-indigo-600"
-              onClick={() => toast.info('Chức năng đang phát triển')}
+              onClick={() => navigate('/payment/history')}
             />
             <ActionCard
               icon="⭐"

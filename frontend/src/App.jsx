@@ -24,6 +24,9 @@ import { VehiclesPage } from './features/vehicles/pages';
 import { StationDetailPage } from './features/station/pages';
 import MyBookingsPage from './features/booking/pages/MyBookingsPage';
 import StationReviewsPage from './features/rating/pages/StationReviewsPage';
+import PaymentSuccessPage from './features/payments/pages/PaymentSuccessPage';
+import PaymentFailedPage from './features/payments/pages/PaymentFailedPage';
+import PaymentHistoryPage from './features/payments/pages/PaymentHistoryPage';
 import BottomNav from './components/layout/BottomNav';
 
 function App() {
@@ -66,7 +69,9 @@ function AppContent() {
     location.pathname === '/route' ||
     location.pathname === '/vehicles' ||
     location.pathname === '/bookings' ||
-    location.pathname.startsWith('/stations/');
+    location.pathname === '/profile' ||
+    location.pathname.startsWith('/stations/') ||
+    location.pathname.startsWith('/payment/');
 
   const isAuthPage =
     location.pathname === '/login' ||
@@ -247,15 +252,11 @@ function AppContent() {
           />
           <Route
             path="/profile"
-            element={
-              isLoggedIn ? <ProfilePage /> : <Navigate to="/login" />
-            }
+            element={isLoggedIn ? <ProfilePage /> : <Navigate to="/login" />}
           />
           <Route
             path="/vehicles"
-            element={
-              isLoggedIn ? <VehiclesPage /> : <Navigate to="/login" />
-            }
+            element={isLoggedIn ? <VehiclesPage /> : <Navigate to="/login" />}
           />
           <Route
             path="/stations/:id"
@@ -265,13 +266,19 @@ function AppContent() {
           />
           <Route
             path="/bookings"
-            element={
-              isLoggedIn ? <MyBookingsPage /> : <Navigate to="/login" />
-            }
+            element={isLoggedIn ? <MyBookingsPage /> : <Navigate to="/login" />}
           />
           <Route
             path="/stations/:id/reviews"
             element={<StationReviewsPage />}
+          />
+
+          {/* Payment routes */}
+          <Route path="/payment/success" element={<PaymentSuccessPage />} />
+          <Route path="/payment/failed" element={<PaymentFailedPage />} />
+          <Route 
+            path="/payment/history" 
+            element={isLoggedIn ? <PaymentHistoryPage /> : <Navigate to="/login" />} 
           />
         </Routes>
       </main>

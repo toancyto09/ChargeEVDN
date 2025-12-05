@@ -33,25 +33,25 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const token = localStorage.getItem('token');
     const currentPath = window.location.pathname;
-    
+
     // Xử lý token hết hạn hoặc không hợp lệ (401 hoặc 403)
     if ((status === 401 || status === 403) && token) {
       // Chỉ redirect nếu KHÔNG đang ở trang login/register
       if (currentPath !== '/login' && currentPath !== '/register') {
         localStorage.removeItem('token');
-        
+
         // Hiển thị thông báo
         toast.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', {
           duration: 3000,
         });
-        
+
         // Redirect sau 800ms để user thấy toast
         setTimeout(() => {
           window.location.href = '/login';
         }, 800);
       }
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -96,9 +96,15 @@ export const sessionsAPI = {
 };
 
 // Payments API
-export const paymentsAPI = {
-  create: (bookingId) => api.post(`/api/payments/${bookingId}`),
-  getStatus: (paymentId) => api.get(`/api/payments/${paymentId}/status`),
+export const paymentAPI = {
+  // Create payment and get VNPay URL
+  create: (bookingId) => api.post('/api/payment/create', { bookingId }),
+
+  // Get payment details by booking ID
+  getByBooking: (bookingId) => api.get(`/api/payment/booking/${bookingId}`),
+
+  // Get payment details by payment ID
+  getById: (paymentId) => api.get(`/api/payment/${paymentId}`),
 };
 
 // Vehicles API
@@ -121,7 +127,8 @@ export const reviewsAPI = {
 
 // AI Recommendations API
 export const aiAPI = {
-  getRecommendations: (params) => api.get('/api/ai/recommendations', { params }),
+  getRecommendations: (params) =>
+    api.get('/api/ai/recommendations', { params }),
   explainRecommendation: (stationId, params) =>
     api.get(`/api/ai/recommendations/explain/${stationId}`, { params }),
 };
@@ -130,41 +137,43 @@ export const aiAPI = {
 export const bookingAPI = {
   // Create a new booking
   create: (bookingData) => api.post('/api/bookings', bookingData),
-  
+
   // Get user's bookings
   getMyBookings: (params) => api.get('/api/bookings', { params }),
-  
+
   // Get booking by ID
   getById: (id) => api.get(`/api/bookings/${id}`),
-  
+
   // Extend booking expiry (for late arrivals)
-  extend: (id, extension_minutes = 15) => 
+  extend: (id, extension_minutes = 15) =>
     api.post(`/api/bookings/${id}/extend`, { extension_minutes }),
-  
+
   // Cancel booking
   cancel: (id) => api.delete(`/api/bookings/${id}`),
-  
+
   // Get available time slots for a connector
-  getAvailableSlots: (connectorId, date) => 
-    api.get(`/api/bookings/connector/${connectorId}/slots`, { params: { date } }),
+  getAvailableSlots: (connectorId, date) =>
+    api.get(`/api/bookings/connector/${connectorId}/slots`, {
+      params: { date },
+    }),
 };
 
 // Rating API
 export const ratingAPI = {
   // Create a new rating
   create: (ratingData) => api.post('/api/ratings', ratingData),
-  
+
   // Get ratings for a station
-  getStationRatings: (stationId, params) => 
+  getStationRatings: (stationId, params) =>
     api.get(`/api/ratings/station/${stationId}`, { params }),
-  
+
   // Get average rating for a station
-  getStationAverage: (stationId) => 
+  getStationAverage: (stationId) =>
     api.get(`/api/ratings/station/${stationId}/average`),
-  
+
   // Get user's ratings
   getMyRatings: (params) => api.get('/api/ratings/my', { params }),
-  
+
   // Check if user can rate a booking
   canRate: (bookingId) => api.get(`/api/ratings/can-rate/${bookingId}`),
 };
