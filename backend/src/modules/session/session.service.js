@@ -383,3 +383,142 @@ export async function getUnpaidSessions(userId) {
   const result = await pool.query(query, [userId]);
   return result.rows;
 }
+
+/**
+ * Check-in via QR code (Station-level QR)
+ * Automatically find user's booking for this station and start session
+ * @param {number} userId - User ID
+ * @param {number} stationId - Station ID from QR code
+ * @returns {object} Session info with connector details
+ */
+export async function checkInWithQR(userId, stationId) {
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+
+    // Find user's valid booking for this station
+    const bookingQuery = `
+      SELECT 
+        dc.id_dat_cho,
+        dc.id_nguoi_dung,
+        dc.id_cong_sac,
+        dc.trang_thai,
+        dc.thoi_gian_bat_dau,
+        dc.thoi_gian_ket_thuc,
+        dc.ma_xac_nhan,
+        ts.id_tram,
+        ts.ten_tram,
+        ts.dia_chi,
+        cs.ma_cong_tram,
+        lcs.ma_cong as loai_cong,
+        cs.cong_suat_kwh
+      FROM dat_cho dc
+      JOIN cong_sac cs ON cs.id_cong_sac = dc.id_cong_sac
+      JOIN tram_sac ts ON ts.id_tram = cs.id_tram
+      JOIN loai_cong_sac lcs ON lcs.id_loai_cong = cs.id_loai_cong
+      WHERE dc.id_nguoi_dung = $1
+        AND ts.id_tram = $2
+        AND dc.trang_thai IN ('cho_xac_nhan', 'da_xac_nhan')
+        AND NOW() >= (dc.thoi_gian_bat_dau - INTERVAL '15 minutes')
+        AND NOW() <= dc.thoi_gian_ket_thuc
+      ORDER BY dc.ngay_tao DESC
+      LIMIT 1
+    `;
+    
+    const bookingResult = await client.query(bookingQuery, [userId, stationId]);
+    
+    if (bookingResult.rows.length === 0) {
+      // No valid booking found - Check for other scenarios
+      const anyBookingQuery = `
+        SELECT 
+          dc.id_dat_cho,
+          dc.thoi_gian_bat_dau,
+          dc.trang_thai,
+          ts.ten_tram,
+          ts.id_tram
+        FROM dat_cho dc
+        JOIN cong_sac cs ON cs.id_cong_sac = dc.id_cong_sac
+        JOIN tram_sac ts ON ts.id_tram = cs.id_tram
+        WHERE dc.id_nguoi_dung = $1
+          AND dc.trang_thai IN ('cho_xac_nhan', 'da_xac_nhan')
+        ORDER BY dc.thoi_gian_bat_dau ASC
+        LIMIT 1
+      `;
+      
+      const anyBooking = await client.query(anyBookingQuery, [userId]);
+      
+      if (anyBooking.rows.length > 0) {
+        const booking = anyBooking.rows[0];
+        const startTime = new Date(booking.thoi_gian_bat_dau);
+        const now = new Date();
+        
+        // Check if at wrong station
+        if (booking.id_tram !== stationId) {
+          throw new Error(`QR code này không đúng với đặt chỗ của bạn. Bạn đã đặt chỗ tại "${booking.ten_tram}"`);
+        }
+        
+        // Check if too early
+        if (now < new Date(startTime.getTime() - 15 * 60 * 1000)) {
+          const minutesUntil = Math.floor((startTime - now) / 60000);
+          throw new Error(`Chưa đến giờ check-in. Vui lòng đợi thêm ${minutesUntil} phút`);
+        }
+        
+        // Check if expired
+        throw new Error('Đặt chỗ của bạn đã hết hạn. Vui lòng đặt lại');
+      }
+      
+      throw new Error('Bạn chưa có đặt chỗ tại trạm này. Vui lòng đặt chỗ trước khi check-in');
+    }
+
+    const booking = bookingResult.rows[0];
+
+    // Check if session already exists
+    const existingSessionQuery = `
+      SELECT id_phien_sac, trang_thai 
+      FROM phien_sac 
+      WHERE id_dat_cho = $1
+    `;
+    const existingSession = await client.query(existingSessionQuery, [booking.id_dat_cho]);
+
+    if (existingSession.rows.length > 0) {
+      const session = existingSession.rows[0];
+      if (session.trang_thai === 'dang_sac') {
+        throw new Error('Phiên sạc đã được bắt đầu rồi. Vui lòng kiểm tra trong "Phiên sạc"');
+      }
+    }
+
+    // Auto-confirm booking if still waiting
+    if (booking.trang_thai === 'cho_xac_nhan') {
+      await client.query(
+        `UPDATE dat_cho SET trang_thai = 'da_xac_nhan' WHERE id_dat_cho = $1`,
+        [booking.id_dat_cho]
+      );
+    }
+
+    // Start charging session
+    const session = await startSession(booking.id_dat_cho);
+    
+    await client.query('COMMIT');
+
+    console.log(`✅ QR Check-in successful: User ${userId} at Station ${stationId}, Session #${session.id_phien_sac}`);
+
+    return {
+      session_id: session.id_phien_sac,
+      booking_id: booking.id_dat_cho,
+      station_name: booking.ten_tram,
+      station_address: booking.dia_chi,
+      connector_code: booking.ma_cong_tram,
+      connector_type: booking.loai_cong,
+      power_kw: booking.cong_suat_kwh,
+      confirmation_code: booking.ma_xac_nhan,
+      start_time: session.thoi_gian_bat_dau
+    };
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}

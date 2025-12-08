@@ -1,8 +1,21 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Zap, X, Loader, ArrowUpDown, SlidersHorizontal, Timer, Star } from 'lucide-react';
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Zap,
+  X,
+  Loader,
+  ArrowUpDown,
+  SlidersHorizontal,
+  Timer,
+  Star,
+  Play,
+  QrCode,
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { bookingAPI } from '../../../services/api';
+import { bookingAPI, sessionAPI } from '../../../services/api';
 import PageLayout from '../../../components/layout/PageLayout';
 import ExpiryCountdown from '../components/ExpiryCountdown';
 import ExtendBookingModal from '../components/ExtendBookingModal';
@@ -28,7 +41,7 @@ export default function MyBookingsPage() {
       setLoading(true);
       const params = filterStatus !== 'all' ? { status: filterStatus } : {};
       const response = await bookingAPI.getMyBookings(params);
-      
+
       if (response.data.success) {
         setBookings(response.data.data);
       }
@@ -45,7 +58,7 @@ export default function MyBookingsPage() {
 
     try {
       const response = await bookingAPI.cancel(bookingId);
-      
+
       if (response.data.success) {
         toast.success('Đã hủy đặt chỗ thành công');
         loadBookings();
@@ -63,9 +76,11 @@ export default function MyBookingsPage() {
 
   const handleExtendSuccess = (updatedBooking) => {
     // Update the booking in the list
-    setBookings(prev => prev.map(b => 
-      b.id_dat_cho === updatedBooking.id_dat_cho ? updatedBooking : b
-    ));
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id_dat_cho === updatedBooking.id_dat_cho ? updatedBooking : b
+      )
+    );
     loadBookings(); // Reload to get fresh data
   };
 
@@ -79,19 +94,74 @@ export default function MyBookingsPage() {
     loadBookings();
   };
 
+  const handleStartCharging = async (booking) => {
+    // Validate if it's time to start charging
+    const now = new Date();
+    const startTime = new Date(booking.thoi_gian_bat_dau);
+    const endTime = new Date(booking.thoi_gian_ket_thuc);
+
+    // Allow starting 15 minutes before booking time
+    const earlyStart = new Date(startTime.getTime() - 15 * 60 * 1000);
+
+    if (now < earlyStart) {
+      const minutesUntil = Math.floor((earlyStart - now) / 60000);
+      toast.error(`Chưa đến giờ sạc. Vui lòng đợi thêm ${minutesUntil} phút.`);
+      return;
+    }
+
+    if (now > endTime) {
+      toast.error('Đã quá thời gian đặt chỗ. Vui lòng đặt lại.');
+      return;
+    }
+
+    if (!confirm('Bắt đầu sạc ngay bây giờ?')) return;
+
+    try {
+      const response = await sessionAPI.start(booking.id_dat_cho);
+
+      if (response.data.success) {
+        toast.success('Đã bắt đầu sạc! Đang chuyển đến trang giám sát...');
+        // Navigate to active session page
+        setTimeout(() => {
+          navigate(`/sessions/${response.data.data.id_phien_sac}`);
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Error starting charging:', error);
+      toast.error(error.response?.data?.message || 'Không thể bắt đầu sạc');
+    }
+  };
+
   const getStatusBadge = (status) => {
     const statusConfig = {
-      'cho_xac_nhan': { label: 'Chờ xác nhận', class: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-      'da_xac_nhan': { label: 'Đã xác nhận', class: 'bg-blue-100 text-blue-800 border-blue-200' },
-      'dang_su_dung': { label: 'Đang sạc', class: 'bg-green-100 text-green-800 border-green-200' },
-      'hoan_thanh': { label: 'Hoàn thành', class: 'bg-gray-100 text-gray-800 border-gray-200' },
-      'huy': { label: 'Đã hủy', class: 'bg-red-100 text-red-800 border-red-200' },
+      cho_xac_nhan: {
+        label: 'Chờ xác nhận',
+        class: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      },
+      da_xac_nhan: {
+        label: 'Đã xác nhận',
+        class: 'bg-blue-100 text-blue-800 border-blue-200',
+      },
+      dang_su_dung: {
+        label: 'Đang sạc',
+        class: 'bg-green-100 text-green-800 border-green-200',
+      },
+      hoan_thanh: {
+        label: 'Hoàn thành',
+        class: 'bg-gray-100 text-gray-800 border-gray-200',
+      },
+      huy: { label: 'Đã hủy', class: 'bg-red-100 text-red-800 border-red-200' },
     };
 
-    const config = statusConfig[status] || { label: status, class: 'bg-gray-100 text-gray-800' };
-    
+    const config = statusConfig[status] || {
+      label: status,
+      class: 'bg-gray-100 text-gray-800',
+    };
+
     return (
-      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${config.class}`}>
+      <span
+        className={`px-3 py-1 rounded-full text-xs font-semibold border ${config.class}`}
+      >
         {config.label}
       </span>
     );
@@ -117,17 +187,31 @@ export default function MyBookingsPage() {
         break;
       case 'time_desc':
         // Sort by thoi_gian_bat_dau (thời gian sạc) - Gần nhất
-        result.sort((a, b) => new Date(b.thoi_gian_bat_dau) - new Date(a.thoi_gian_bat_dau));
+        result.sort(
+          (a, b) =>
+            new Date(b.thoi_gian_bat_dau) - new Date(a.thoi_gian_bat_dau)
+        );
         break;
       case 'time_asc':
         // Sort by thoi_gian_bat_dau (thời gian sạc) - Xa nhất
-        result.sort((a, b) => new Date(a.thoi_gian_bat_dau) - new Date(b.thoi_gian_bat_dau));
+        result.sort(
+          (a, b) =>
+            new Date(a.thoi_gian_bat_dau) - new Date(b.thoi_gian_bat_dau)
+        );
         break;
       case 'price_desc':
-        result.sort((a, b) => (parseFloat(b.uoc_tinh_chi_phi) || 0) - (parseFloat(a.uoc_tinh_chi_phi) || 0));
+        result.sort(
+          (a, b) =>
+            (parseFloat(b.uoc_tinh_chi_phi) || 0) -
+            (parseFloat(a.uoc_tinh_chi_phi) || 0)
+        );
         break;
       case 'price_asc':
-        result.sort((a, b) => (parseFloat(a.uoc_tinh_chi_phi) || 0) - (parseFloat(b.uoc_tinh_chi_phi) || 0));
+        result.sort(
+          (a, b) =>
+            (parseFloat(a.uoc_tinh_chi_phi) || 0) -
+            (parseFloat(b.uoc_tinh_chi_phi) || 0)
+        );
         break;
       default:
         break;
@@ -159,14 +243,35 @@ export default function MyBookingsPage() {
               onClick={() => navigate(-1)}
               className="p-2 hover:bg-white/20 rounded-lg transition-colors"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </button>
             <div className="flex-1">
               <h1 className="text-2xl font-bold">Đặt chỗ của tôi</h1>
-              <p className="text-blue-100 text-sm mt-1">{sortedAndFilteredBookings.length} đặt chỗ</p>
+              <p className="text-blue-100 text-sm mt-1">
+                {sortedAndFilteredBookings.length} đặt chỗ
+              </p>
             </div>
+            {/* QR Check-in Button */}
+            <button
+              onClick={() => navigate('/qr-checkin')}
+              className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl transition-all backdrop-blur-sm border border-white/30"
+              title="Quét QR để check-in"
+            >
+              <QrCode className="w-5 h-5" />
+              <span className="text-sm font-medium hidden sm:inline">Quét QR</span>
+            </button>
             {/* Sort & Filter Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -188,7 +293,7 @@ export default function MyBookingsPage() {
               { value: 'dang_su_dung', label: 'Đang sạc' },
               { value: 'hoan_thanh', label: 'Hoàn thành' },
               { value: 'huy', label: 'Đã hủy' },
-            ].map(tab => (
+            ].map((tab) => (
               <button
                 key={tab.value}
                 onClick={() => setFilterStatus(tab.value)}
@@ -218,7 +323,7 @@ export default function MyBookingsPage() {
                   { value: 'time_asc', label: 'Sạc muộn', icon: '⏰↑' },
                   { value: 'price_desc', label: 'Giá cao', icon: '💰↓' },
                   { value: 'price_asc', label: 'Giá thấp', icon: '💰↑' },
-                ].map(option => (
+                ].map((option) => (
                   <button
                     key={option.value}
                     onClick={() => {
@@ -267,6 +372,7 @@ export default function MyBookingsPage() {
               onCancel={handleCancelBooking}
               onExtend={handleExtendBooking}
               onRate={handleRateBooking}
+              onStartCharging={handleStartCharging}
               getStatusBadge={getStatusBadge}
               canCancel={canCancelBooking(booking)}
             />
@@ -293,29 +399,45 @@ export default function MyBookingsPage() {
   );
 }
 
-function BookingCard({ booking, onCancel, onExtend, onRate, getStatusBadge, canCancel }) {
+function BookingCard({
+  booking,
+  onCancel,
+  onExtend,
+  onRate,
+  onStartCharging,
+  getStatusBadge,
+  canCancel,
+}) {
   const navigate = useNavigate();
-  
+
   const startTime = new Date(booking.thoi_gian_bat_dau);
   const endTime = new Date(booking.thoi_gian_ket_thuc);
-  
+  const now = new Date();
+
   const formatDate = (date) => {
     return new Intl.DateTimeFormat('vi-VN', {
       weekday: 'short',
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
     }).format(date);
   };
 
   const formatTime = (date) => {
     return new Intl.DateTimeFormat('vi-VN', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     }).format(date);
   };
 
-  const duration = Math.round((endTime - startTime) / (1000 * 60 * 60) * 10) / 10;
+  const duration =
+    Math.round(((endTime - startTime) / (1000 * 60 * 60)) * 10) / 10;
+
+  // Check if user can start charging (15 minutes before to booking end time)
+  const canStartCharging =
+    booking.trang_thai === 'da_xac_nhan' &&
+    now >= new Date(startTime.getTime() - 15 * 60 * 1000) &&
+    now <= endTime;
 
   return (
     <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden border border-gray-100">
@@ -346,9 +468,7 @@ function BookingCard({ booking, onCancel, onExtend, onRate, getStatusBadge, canC
         {/* Date & Time */}
         <div className="flex items-center gap-3">
           <Calendar className="w-5 h-5 text-gray-400 flex-shrink-0" />
-          <p className="text-sm text-gray-700">
-            {formatDate(startTime)}
-          </p>
+          <p className="text-sm text-gray-700">{formatDate(startTime)}</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -372,7 +492,8 @@ function BookingCard({ booking, onCancel, onExtend, onRate, getStatusBadge, canC
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-700">Ước tính chi phí:</span>
               <span className="text-lg font-bold text-emerald-700">
-                ~{parseFloat(booking.uoc_tinh_chi_phi).toLocaleString('vi-VN')} đ
+                ~{parseFloat(booking.uoc_tinh_chi_phi).toLocaleString('vi-VN')}{' '}
+                đ
               </span>
             </div>
           </div>
@@ -400,16 +521,27 @@ function BookingCard({ booking, onCancel, onExtend, onRate, getStatusBadge, canC
       </div>
 
       {/* Actions */}
-      <div className="px-4 pb-4 flex gap-2">
+      <div className="px-4 pb-4 flex flex-wrap gap-2">
         <button
           onClick={() => navigate(`/stations/${booking.id_tram}`)}
-          className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+          className="flex-1 min-w-[120px] px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors"
         >
           Xem trạm
         </button>
-        
+
+        {/* Start Charging button - only for confirmed bookings within time window */}
+        {canStartCharging && (
+          <button
+            onClick={() => onStartCharging(booking)}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg font-medium text-sm transition-all shadow-md hover:shadow-lg"
+          >
+            <Play className="w-4 h-4" />
+            Bắt đầu sạc
+          </button>
+        )}
+
         {/* Extend button - only for confirmed bookings */}
-        {booking.trang_thai === 'da_xac_nhan' && (
+        {booking.trang_thai === 'da_xac_nhan' && !canStartCharging && (
           <button
             onClick={() => onExtend(booking)}
             className="flex items-center gap-2 px-4 py-2.5 bg-green-50 hover:bg-green-100 text-green-600 rounded-lg font-medium text-sm transition-colors"
@@ -418,7 +550,7 @@ function BookingCard({ booking, onCancel, onExtend, onRate, getStatusBadge, canC
             Gia hạn
           </button>
         )}
-        
+
         {/* Rating button - only for completed bookings */}
         {booking.trang_thai === 'hoan_thanh' && !booking.da_danh_gia && (
           <button
@@ -429,7 +561,7 @@ function BookingCard({ booking, onCancel, onExtend, onRate, getStatusBadge, canC
             Đánh giá
           </button>
         )}
-        
+
         {canCancel && (
           <button
             onClick={() => onCancel(booking.id_dat_cho)}
@@ -443,4 +575,3 @@ function BookingCard({ booking, onCancel, onExtend, onRate, getStatusBadge, canC
     </div>
   );
 }
-

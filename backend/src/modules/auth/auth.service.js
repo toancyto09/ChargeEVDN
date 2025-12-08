@@ -20,12 +20,12 @@ import { HTTP_STATUS } from '../../config/app.constants.js';
  * Generate JWT Token
  * @param {number} id - User ID
  * @param {string} email - User email
- * @param {string} role - User role
+ * @param {string} vai_tro - User role (using Vietnamese field name for consistency)
  * @returns {string} JWT token
  */
-export const generateToken = (id, email, role) => {
+export const generateToken = (id, email, vai_tro) => {
   return jwt.sign(
-    { id, email, role },
+    { id, email, vai_tro }, // Changed from 'role' to 'vai_tro' for consistency with database
     process.env.JWT_SECRET,
     {
       expiresIn: process.env.JWT_EXPIRES_IN || JWT_CONFIG.DEFAULT_EXPIRY,

@@ -27,6 +27,8 @@ import StationReviewsPage from './features/rating/pages/StationReviewsPage';
 import PaymentSuccessPage from './features/payments/pages/PaymentSuccessPage';
 import PaymentFailedPage from './features/payments/pages/PaymentFailedPage';
 import PaymentHistoryPage from './features/payments/pages/PaymentHistoryPage';
+import { ActiveSessionPage, SessionsPage, QRCheckinPage } from './features/session/pages';
+import { OwnerDashboard } from './features/owner/pages';
 import BottomNav from './components/layout/BottomNav';
 
 function App() {
@@ -40,6 +42,18 @@ function App() {
 function AppContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+
+  // Helper function to get user role from token
+  const getUserRole = () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.vai_tro || payload.role || null;
+    } catch (error) {
+      return null;
+    }
+  };
 
   // Re-check isLoggedIn whenever location changes
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -70,8 +84,11 @@ function AppContent() {
     location.pathname === '/vehicles' ||
     location.pathname === '/bookings' ||
     location.pathname === '/profile' ||
+    location.pathname === '/qr-checkin' ||
     location.pathname.startsWith('/stations/') ||
-    location.pathname.startsWith('/payment/');
+    location.pathname.startsWith('/payment/') ||
+    location.pathname.startsWith('/sessions') ||
+    location.pathname.startsWith('/owner/');
 
   const isAuthPage =
     location.pathname === '/login' ||
@@ -197,12 +214,34 @@ function AppContent() {
           <Route path="/" element={<Navigate to="/map" replace />} />
           <Route
             path="/login"
-            element={isLoggedIn ? <Navigate to="/dashboard" /> : <LoginPage />}
+            element={
+              isLoggedIn ? (
+                getUserRole() === 'owner' ? (
+                  <Navigate to="/owner/dashboard" />
+                ) : getUserRole() === 'admin' ? (
+                  <Navigate to="/admin/dashboard" />
+                ) : (
+                  <Navigate to="/dashboard" />
+                )
+              ) : (
+                <LoginPage />
+              )
+            }
           />
           <Route
             path="/register"
             element={
-              isLoggedIn ? <Navigate to="/dashboard" /> : <RegisterPage />
+              isLoggedIn ? (
+                getUserRole() === 'owner' ? (
+                  <Navigate to="/owner/dashboard" />
+                ) : getUserRole() === 'admin' ? (
+                  <Navigate to="/admin/dashboard" />
+                ) : (
+                  <Navigate to="/dashboard" />
+                )
+              ) : (
+                <RegisterPage />
+              )
             }
           />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -279,6 +318,26 @@ function AppContent() {
           <Route 
             path="/payment/history" 
             element={isLoggedIn ? <PaymentHistoryPage /> : <Navigate to="/login" />} 
+          />
+
+          {/* Session routes */}
+          <Route 
+            path="/sessions" 
+            element={isLoggedIn ? <SessionsPage /> : <Navigate to="/login" />} 
+          />
+          <Route 
+            path="/sessions/:id" 
+            element={isLoggedIn ? <ActiveSessionPage /> : <Navigate to="/login" />} 
+          />
+          <Route 
+            path="/qr-checkin" 
+            element={isLoggedIn ? <QRCheckinPage /> : <Navigate to="/login" />} 
+          />
+
+          {/* Owner routes */}
+          <Route 
+            path="/owner/dashboard" 
+            element={isLoggedIn ? <OwnerDashboard /> : <Navigate to="/login" />} 
           />
         </Routes>
       </main>

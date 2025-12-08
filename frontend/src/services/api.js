@@ -98,7 +98,8 @@ export const sessionsAPI = {
 // Payments API
 export const paymentAPI = {
   // Create payment and get VNPay URL
-  create: (bookingId) => api.post('/api/payment/create', { bookingId }),
+  // Can accept either { bookingId } or { sessionId }
+  create: (data) => api.post('/api/payment/create', data),
 
   // Get payment details by booking ID
   getByBooking: (bookingId) => api.get(`/api/payment/booking/${bookingId}`),
@@ -176,6 +177,27 @@ export const ratingAPI = {
 
   // Check if user can rate a booking
   canRate: (bookingId) => api.get(`/api/ratings/can-rate/${bookingId}`),
+};
+
+// Session API (Charging Session Management)
+export const sessionAPI = {
+  // Start a charging session
+  start: (bookingId) => api.post('/api/sessions/start', { bookingId }),
+
+  // Finish a charging session
+  finish: (sessionId, data) => api.post(`/api/sessions/${sessionId}/finish`, data),
+
+  // Get session details by ID
+  getById: (sessionId) => api.get(`/api/sessions/${sessionId}`),
+
+  // Get user's sessions (with optional status filter)
+  getMySessions: (status) => api.get('/api/sessions', { params: { status } }),
+
+  // Get unpaid sessions
+  getUnpaid: () => api.get('/api/sessions/unpaid'),
+
+  // Check-in via QR code (Station-level)
+  checkInQR: (data) => api.post('/api/sessions/checkin-qr', data),
 };
 
 export default api;

@@ -201,6 +201,60 @@ class SessionController {
       });
     }
   }
+
+  /**
+   * Check-in via QR code (Station-level)
+   * POST /api/sessions/checkin-qr
+   */
+  async checkInWithQR(req, res) {
+    try {
+      const { station_id } = req.body;
+      const userId = req.user.id_nguoi_dung;
+
+      if (!station_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Thiếu thông tin station_id từ QR code'
+        });
+      }
+
+      const result = await sessionService.checkInWithQR(
+        userId, 
+        parseInt(station_id)
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Check-in thành công! Đang bắt đầu sạc...',
+        data: result
+      });
+
+    } catch (error) {
+      console.error('QR check-in error:', error);
+      
+      // User-friendly errors
+      const userErrors = [
+        'Chưa đến giờ',
+        'không đúng với đặt chỗ',
+        'chưa có đặt chỗ',
+        'đã được bắt đầu',
+        'đã hết hạn'
+      ];
+      
+      if (userErrors.some(msg => error.message.includes(msg))) {
+        return res.status(400).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi check-in. Vui lòng thử lại',
+        error: error.message
+      });
+    }
+  }
 }
 
 export default new SessionController();

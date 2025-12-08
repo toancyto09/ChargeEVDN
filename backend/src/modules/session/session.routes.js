@@ -16,6 +16,9 @@ router.get('/', authenticateToken, sessionController.getUserSessions);
 // Must be BEFORE /:id route to avoid conflict
 router.get('/unpaid', authenticateToken, sessionController.getUnpaidSessions);
 
+// Check-in via QR code (requires authentication)
+router.post('/checkin-qr', authenticateToken, sessionController.checkInWithQR);
+
 // Start a charging session (requires authentication)
 router.post('/start', authenticateToken, sessionController.startSession);
 

@@ -47,10 +47,25 @@ export default function GoogleCallbackPage() {
             console.log('✅ Google login successful:', userData);
           }
 
+          // Get user role from token for proper redirect
+          let userRole = null;
+          try {
+            const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+            userRole = tokenPayload.vai_tro || tokenPayload.role;
+          } catch (e) {
+            console.error('Token decode error:', e);
+          }
+
           toast.success('Đăng nhập Google thành công!');
 
-          // Redirect to dashboard
-          navigate('/dashboard');
+          // Redirect based on role
+          if (userRole === 'owner') {
+            navigate('/owner/dashboard');
+          } else if (userRole === 'admin') {
+            navigate('/admin/dashboard');
+          } else {
+            navigate('/dashboard');
+          }
         } catch (error) {
           console.error('Error parsing user data:', error);
           toast.error('Có lỗi xảy ra. Vui lòng thử lại');
