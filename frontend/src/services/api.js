@@ -95,15 +95,14 @@ export const sessionsAPI = {
   getById: (id) => api.get(`/api/sessions/${id}`),
 };
 
-// Payments API
+// Payments API (Session-based only - PAY AFTER model)
 export const paymentAPI = {
-  // Create payment and get VNPay URL
-  // Can accept either { bookingId } or { sessionId }
-  create: (data) => api.post('/api/payment/create', data),
-
-  // Get payment details by booking ID
-  getByBooking: (bookingId) => api.get(`/api/payment/booking/${bookingId}`),
-
+  // Create payment from completed session
+  create: (sessionId) => api.post('/api/payment/create', { sessionId }),
+  
+  // Get payment details by session ID
+  getBySession: (sessionId) => api.get(`/api/payment/session/${sessionId}`),
+  
   // Get payment details by payment ID
   getById: (paymentId) => api.get(`/api/payment/${paymentId}`),
 };

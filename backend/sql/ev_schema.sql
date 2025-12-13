@@ -189,22 +189,17 @@ CREATE TABLE public.danh_gia (
 
 
 --------------------------------------------------
--- 10. thanh_toan (UPDATED: Support both booking and session payments)
+-- 10. thanh_toan (SESSION-BASED PAYMENT ONLY)
 --------------------------------------------------
 CREATE TABLE public.thanh_toan (
   id_thanh_toan BIGSERIAL PRIMARY KEY,
-  id_dat_cho BIGINT,              -- Legacy: booking-based payment (nullable)
-  id_phien_sac BIGINT,             -- New: session-based payment
+  id_phien_sac BIGINT NOT NULL,
   so_tien NUMERIC(12,2),
   phuong_thuc VARCHAR(20) DEFAULT 'VNPAY' NOT NULL,
   trang_thai pay_status_enum DEFAULT 'pending' NOT NULL,
   ma_giao_dich VARCHAR(64),
   ngay_thanh_toan TIMESTAMPTZ,
-  ngay_tao TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT chk_payment_source CHECK (
-    (id_dat_cho IS NOT NULL AND id_phien_sac IS NULL) OR 
-    (id_dat_cho IS NULL AND id_phien_sac IS NOT NULL)
-  )
+  ngay_tao TIMESTAMPTZ DEFAULT NOW()
 );
 
 
@@ -301,9 +296,6 @@ ALTER TABLE danh_gia
   ADD CONSTRAINT fk_danh_gia_dat_cho FOREIGN KEY (id_dat_cho) REFERENCES dat_cho(id_dat_cho);
 
 ALTER TABLE thanh_toan 
-  ADD CONSTRAINT fk_thanh_toan_dat_cho FOREIGN KEY (id_dat_cho) REFERENCES dat_cho(id_dat_cho);
-
-ALTER TABLE thanh_toan 
   ADD CONSTRAINT fk_thanh_toan_phien_sac FOREIGN KEY (id_phien_sac) REFERENCES phien_sac(id_phien_sac);
 
 ALTER TABLE hoa_don 
@@ -321,23 +313,13 @@ ALTER TABLE lich_su_gia_tram
 -- ========== 4. INDEXES ========================
 -- ==============================================
 
--- Index for session-based payment lookups
-CREATE INDEX idx_thanh_toan_phien_sac ON thanh_toan(id_phien_sac) WHERE id_phien_sac IS NOT NULL;
+-- Index for session-based payment lookups (PRIMARY payment method)
+CREATE INDEX idx_thanh_toan_phien_sac ON thanh_toan(id_phien_sac);
 
--- Index for booking-based payment lookups
-CREATE INDEX idx_thanh_toan_dat_cho ON thanh_toan(id_dat_cho) WHERE id_dat_cho IS NOT NULL;
-
--- Index for pending payments
+-- Index for pending payments (common query for unpaid sessions)
 CREATE INDEX idx_thanh_toan_pending ON thanh_toan(trang_thai) WHERE trang_thai = 'pending';
 
+-- Index for completed sessions awaiting payment
+CREATE INDEX idx_phien_sac_unpaid ON phien_sac(trang_thai) WHERE trang_thai = 'hoan_thanh';
 
 
--- ==============================================
--- ========== DONE – 13 TABLES CREATED ===========
--- ==============================================
-
--- PAYMENT FLOW NOTES:
--- - OLD FLOW (booking-based): User pays BEFORE charging
---   → id_dat_cho is set, id_phien_sac is NULL
--- - NEW FLOW (session-based): User pays AFTER charging
---   → id_phien_sac is set, id_dat_cho is NULL

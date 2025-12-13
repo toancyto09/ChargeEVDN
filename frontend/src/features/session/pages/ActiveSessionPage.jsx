@@ -130,8 +130,8 @@ export default function ActiveSessionPage() {
 
   const handlePayment = async (sessionId) => {
     try {
-      // Call payment API with sessionId
-      const response = await paymentAPI.create({ sessionId });
+      // Call payment API with sessionId (pass number directly, not object)
+      const response = await paymentAPI.create(sessionId);
       
       if (response.data.success && response.data.data.paymentUrl) {
         toast.success('Đang chuyển đến trang thanh toán...');

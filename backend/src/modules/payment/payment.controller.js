@@ -3,23 +3,24 @@ import paymentService from './payment.service.js';
 /**
  * Payment Controller
  * Handles HTTP requests for payment operations
+ * NOTE: Payment ONLY happens AFTER charging session completes
  */
 
 class PaymentController {
   /**
-   * Create payment and get VNPay URL (UPDATED: Support both booking and session)
+   * Create payment from charging session (PAY AFTER model)
    * POST /api/payment/create
+   * Body: { sessionId: number }
    */
   async createPayment(req, res) {
     try {
-      const { bookingId, sessionId } = req.body;
+      const { sessionId } = req.body;
       const userId = req.user.id_nguoi_dung;
       
-      // Must provide either bookingId or sessionId
-      if (!bookingId && !sessionId) {
+      if (!sessionId) {
         return res.status(400).json({
           success: false,
-          message: 'Thiếu thông tin booking ID hoặc session ID'
+          message: 'Thiếu session ID. Chỉ có thể thanh toán sau khi hoàn thành sạc.'
         });
       }
 
@@ -35,15 +36,8 @@ class PaymentController {
         ipAddr = '127.0.0.1';
       }
 
-      let payment;
-
-      if (sessionId) {
-        // NEW FLOW: Create payment from session (after charging)
-        payment = await paymentService.createPaymentFromSession(sessionId, ipAddr);
-      } else {
-        // OLD FLOW: Create payment from booking (before charging)
-        payment = await paymentService.createPayment(bookingId, ipAddr);
-      }
+      // Create payment from session
+      const payment = await paymentService.createPaymentFromSession(sessionId, ipAddr);
 
       res.status(200).json({
         success: true,
@@ -87,25 +81,14 @@ class PaymentController {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       
       if (result.success) {
-        // Check if this is session-based or booking-based payment
-        // Session-based: vnp_TxnRef starts with 'S'
-        const isSessionBased = vnpParams.vnp_TxnRef && vnpParams.vnp_TxnRef.startsWith('S');
-        
-        if (isSessionBased) {
-          // Session-based payment - redirect with sessionId
-          res.redirect(
-            `${frontendUrl}/payment/success?sessionId=${result.sessionId}&paymentId=${result.paymentId}`
-          );
-        } else {
-          // Booking-based payment - redirect with bookingId
-          res.redirect(
-            `${frontendUrl}/payment/success?bookingId=${result.bookingId}&paymentId=${result.paymentId}`
-          );
-        }
+        // Always session-based payment (vnp_TxnRef starts with 'S')
+        res.redirect(
+          `${frontendUrl}/payment/success?sessionId=${result.sessionId}&paymentId=${result.paymentId}`
+        );
       } else {
         // Payment failed - redirect to failed page
         res.redirect(
-          `${frontendUrl}/payment/failed?message=${encodeURIComponent(result.message)}`
+          `${frontendUrl}/payment/failed?sessionId=${result.sessionId}&message=${encodeURIComponent(result.message)}`
         );
       }
 
@@ -120,15 +103,15 @@ class PaymentController {
   }
 
   /**
-   * Get payment details by booking ID
-   * GET /api/payment/booking/:bookingId
+   * Get payment details by session ID
+   * GET /api/payment/session/:sessionId
    */
-  async getPaymentByBooking(req, res) {
+  async getPaymentBySession(req, res) {
     try {
-      const { bookingId } = req.params;
+      const { sessionId } = req.params;
       const userId = req.user.id_nguoi_dung;
 
-      const payment = await paymentService.getPaymentByBooking(bookingId);
+      const payment = await paymentService.getPaymentBySession(sessionId);
 
       if (!payment) {
         return res.status(404).json({

@@ -5,13 +5,13 @@ import { toast } from 'sonner';
 
 /**
  * Payment Failed Page
- * Displayed after failed VNPay payment
+ * Displayed after failed VNPay payment (session-based only)
  */
 const PaymentFailedPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const bookingId = searchParams.get('bookingId');
+  const sessionId = searchParams.get('sessionId');
   const message = searchParams.get('message') || 'Thanh toán không thành công';
 
   useEffect(() => {
@@ -20,12 +20,12 @@ const PaymentFailedPage = () => {
   }, [message]);
 
   const handleRetry = () => {
-    if (bookingId) {
-      // Navigate back to bookings page where user can try to pay again
-      navigate('/bookings');
+    if (sessionId) {
+      // Navigate back to sessions page where user can see unpaid sessions
+      navigate('/sessions');
     } else {
-      // Navigate to map to create a new booking
-      navigate('/');
+      // Navigate to sessions
+      navigate('/sessions');
     }
   };
 
@@ -93,7 +93,7 @@ const PaymentFailedPage = () => {
             </div>
             <div className="ml-3">
               <p className="text-sm text-yellow-700">
-                <strong className="font-semibold">Lưu ý:</strong> Đặt chỗ của bạn đã bị hủy do thanh toán không thành công. 
+                <strong className="font-semibold">Lưu ý:</strong> Phiên sạc của bạn vẫn chưa được thanh toán. 
                 Vui lòng thử lại hoặc liên hệ hỗ trợ nếu vấn đề vẫn tiếp diễn.
               </p>
             </div>
