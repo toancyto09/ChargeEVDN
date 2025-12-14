@@ -31,6 +31,8 @@ import bookingRoutes from './modules/booking/booking.routes.js';
 import ratingRoutes from './modules/rating/rating.routes.js';
 import paymentRoutes from './modules/payment/payment.routes.js';
 import sessionRoutes from './modules/session/session.routes.js';
+import ownerStationRoutes from './modules/owner/station/owner.station.routes.js';
+import ownerConnectorRoutes from './modules/owner/connector/owner.connector.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -107,6 +109,8 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/ratings', ratingRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/sessions', sessionRoutes);
+app.use('/api/owner', ownerStationRoutes);
+app.use('/api/owner', ownerConnectorRoutes);
 
 logger.info('✅ All routes registered');
 

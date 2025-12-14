@@ -7,6 +7,25 @@ export default function BottomNav() {
   const location = useLocation();
   const isLoggedIn = !!localStorage.getItem('token');
 
+  // Get user role from token
+  const getUserRole = () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.vai_tro || payload.role || null;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const userRole = getUserRole();
+
+  // Don't show BottomNav for owner or admin roles
+  if (userRole === 'owner' || userRole === 'admin') {
+    return null;
+  }
+
   const navItems = [
     {
       path: '/dashboard',

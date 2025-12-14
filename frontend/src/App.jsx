@@ -28,8 +28,9 @@ import PaymentSuccessPage from './features/payments/pages/PaymentSuccessPage';
 import PaymentFailedPage from './features/payments/pages/PaymentFailedPage';
 import PaymentHistoryPage from './features/payments/pages/PaymentHistoryPage';
 import { ActiveSessionPage, SessionsPage, QRCheckinPage } from './features/session/pages';
-import { OwnerDashboard } from './features/owner/pages';
+import { OwnerDashboard, OwnerStationsPage, OwnerStationDetailPage } from './features/owner/pages';
 import BottomNav from './components/layout/BottomNav';
+import { UserRoute, OwnerRoute } from './components/routes/ProtectedRoute';
 
 function App() {
   return (
@@ -254,90 +255,78 @@ function AppContent() {
           {/* Public Map - No login required */}
           <Route path="/map" element={<MapPage />} />
 
-          {/* Protected routes - Login required */}
+          {/* Protected routes - USER ONLY */}
           <Route
             path="/dashboard"
-            element={isLoggedIn ? <DashboardPage /> : <Navigate to="/login" />}
+            element={<UserRoute><DashboardPage /></UserRoute>}
           />
           <Route
             path="/route"
-            element={
-              isLoggedIn ? (
-                <ComingSoonPage title="Lộ trình" />
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
+            element={<UserRoute><ComingSoonPage title="Lộ trình" /></UserRoute>}
           />
           <Route
             path="/notifications"
-            element={
-              isLoggedIn ? (
-                <ComingSoonPage title="Thông báo" />
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
+            element={<UserRoute><ComingSoonPage title="Thông báo" /></UserRoute>}
           />
           <Route
             path="/settings"
-            element={
-              isLoggedIn ? (
-                <ComingSoonPage title="Cài đặt" />
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
+            element={<UserRoute><ComingSoonPage title="Cài đặt" /></UserRoute>}
           />
           <Route
             path="/profile"
-            element={isLoggedIn ? <ProfilePage /> : <Navigate to="/login" />}
+            element={<UserRoute><ProfilePage /></UserRoute>}
           />
           <Route
             path="/vehicles"
-            element={isLoggedIn ? <VehiclesPage /> : <Navigate to="/login" />}
+            element={<UserRoute><VehiclesPage /></UserRoute>}
           />
           <Route
             path="/stations/:id"
-            element={
-              isLoggedIn ? <StationDetailPage /> : <Navigate to="/login" />
-            }
+            element={<UserRoute><StationDetailPage /></UserRoute>}
           />
           <Route
             path="/bookings"
-            element={isLoggedIn ? <MyBookingsPage /> : <Navigate to="/login" />}
+            element={<UserRoute><MyBookingsPage /></UserRoute>}
           />
           <Route
             path="/stations/:id/reviews"
             element={<StationReviewsPage />}
           />
 
-          {/* Payment routes */}
+          {/* Payment routes - USER ONLY */}
           <Route path="/payment/success" element={<PaymentSuccessPage />} />
           <Route path="/payment/failed" element={<PaymentFailedPage />} />
           <Route 
             path="/payment/history" 
-            element={isLoggedIn ? <PaymentHistoryPage /> : <Navigate to="/login" />} 
+            element={<UserRoute><PaymentHistoryPage /></UserRoute>} 
           />
 
-          {/* Session routes */}
+          {/* Session routes - USER ONLY */}
           <Route 
             path="/sessions" 
-            element={isLoggedIn ? <SessionsPage /> : <Navigate to="/login" />} 
+            element={<UserRoute><SessionsPage /></UserRoute>} 
           />
           <Route 
             path="/sessions/:id" 
-            element={isLoggedIn ? <ActiveSessionPage /> : <Navigate to="/login" />} 
+            element={<UserRoute><ActiveSessionPage /></UserRoute>} 
           />
           <Route 
             path="/qr-checkin" 
-            element={isLoggedIn ? <QRCheckinPage /> : <Navigate to="/login" />} 
+            element={<UserRoute><QRCheckinPage /></UserRoute>} 
           />
 
-          {/* Owner routes */}
+          {/* Owner routes - OWNER ONLY */}
           <Route 
             path="/owner/dashboard" 
-            element={isLoggedIn ? <OwnerDashboard /> : <Navigate to="/login" />} 
+            element={<OwnerRoute><OwnerDashboard /></OwnerRoute>} 
+          />
+          <Route 
+            path="/owner/stations" 
+            element={<OwnerRoute><OwnerStationsPage /></OwnerRoute>} 
+          />
+          <Route 
+            path="/owner/stations/:id" 
+            element={<OwnerRoute><OwnerStationDetailPage /></OwnerRoute>} 
           />
         </Routes>
       </main>

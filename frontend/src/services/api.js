@@ -133,6 +133,24 @@ export const aiAPI = {
     api.get(`/api/ai/recommendations/explain/${stationId}`, { params }),
 };
 
+// Owner API (Station Management)
+export const ownerAPI = {
+  // Stations
+  getStations: () => api.get('/api/owner/stations'),
+  getStation: (id) => api.get(`/api/owner/stations/${id}`),
+  createStation: (data) => api.post('/api/owner/stations', data),
+  updateStation: (id, data) => api.put(`/api/owner/stations/${id}`, data),
+  deleteStation: (id) => api.delete(`/api/owner/stations/${id}`),
+  
+  // Connectors
+  getConnectorTypes: () => api.get('/api/owner/connector-types'),
+  getConnectors: (stationId) => api.get(`/api/owner/stations/${stationId}/connectors`),
+  createConnector: (stationId, data) => api.post(`/api/owner/stations/${stationId}/connectors`, data),
+  updateConnector: (connectorId, data) => api.put(`/api/owner/connectors/${connectorId}`, data),
+  deleteConnector: (connectorId) => api.delete(`/api/owner/connectors/${connectorId}`),
+  changeConnectorStatus: (connectorId, status) => api.patch(`/api/owner/connectors/${connectorId}/status`, { trang_thai: status }),
+};
+
 // Booking API
 export const bookingAPI = {
   // Create a new booking
