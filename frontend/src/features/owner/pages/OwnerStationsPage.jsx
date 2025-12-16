@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Building2, Plus, Edit, Trash2, MapPin, DollarSign, 
   Zap, TrendingUp, Clock, AlertCircle, CheckCircle, XCircle,
-  Eye
+  Eye, QrCode
 } from 'lucide-react';
 import { toast } from 'sonner';
 import PageLayout from '../../../components/layout/PageLayout';
@@ -11,6 +11,7 @@ import { ownerAPI } from '../../../services/api';
 import AddStationModal from '../components/station/AddStationModal';
 import EditStationModal from '../components/station/EditStationModal';
 import ConnectorManagementModal from '../components/connector/ConnectorManagementModal';
+import QRCodeModal from '../components/station/QRCodeModal';
 
 /**
  * Owner Stations Page
@@ -23,6 +24,7 @@ export default function OwnerStationsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showConnectorModal, setShowConnectorModal] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
   const [selectedStation, setSelectedStation] = useState(null);
 
   useEffect(() => {
@@ -157,6 +159,10 @@ export default function OwnerStationsPage() {
                   setSelectedStation(station);
                   setShowConnectorModal(true);
                 }}
+                onShowQR={() => {
+                  setSelectedStation(station);
+                  setShowQRModal(true);
+                }}
                 getStatusBadge={getStatusBadge}
               />
             ))}
@@ -189,6 +195,15 @@ export default function OwnerStationsPage() {
         }}
         station={selectedStation}
       />
+
+      <QRCodeModal
+        isOpen={showQRModal}
+        onClose={() => {
+          setShowQRModal(false);
+          setSelectedStation(null);
+        }}
+        station={selectedStation}
+      />
     </PageLayout>
   );
 }
@@ -196,7 +211,7 @@ export default function OwnerStationsPage() {
 /**
  * Station Card Component
  */
-function StationCard({ station, onEdit, onDelete, onView, onManageConnectors, getStatusBadge }) {
+function StationCard({ station, onEdit, onDelete, onView, onManageConnectors, onShowQR, getStatusBadge }) {
   return (
     <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow">
       {/* Header */}
@@ -255,14 +270,24 @@ function StationCard({ station, onEdit, onDelete, onView, onManageConnectors, ge
 
       {/* Actions */}
       <div className="flex flex-col gap-2">
-        {/* First row - Manage Connectors */}
-        <button
-          onClick={onManageConnectors}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all shadow-md"
-        >
-          <Zap className="w-4 h-4" />
-          Quản lý cổng sạc
-        </button>
+        {/* First row - Manage Connectors & QR Code */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={onManageConnectors}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all shadow-md"
+          >
+            <Zap className="w-4 h-4" />
+            Quản lý cổng
+          </button>
+          
+          <button
+            onClick={onShowQR}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-lg font-medium transition-all shadow-md"
+          >
+            <QrCode className="w-4 h-4" />
+            QR Code
+          </button>
+        </div>
 
         {/* Second row - View, Edit, Delete */}
         <div className="flex items-center gap-2">

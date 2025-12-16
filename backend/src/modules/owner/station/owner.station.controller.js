@@ -65,6 +65,57 @@ class OwnerStationController {
   }
 
   /**
+   * Get QR Code data for station
+   * GET /api/owner/stations/:id/qr
+   */
+  async getStationQR(req, res) {
+    try {
+      const userId = req.user.id || req.user.id_nguoi_dung;
+      const { id } = req.params;
+
+      // Verify ownership
+      const station = await ownerStationService.getOwnerStation(id, userId);
+
+      if (!station) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy trạm hoặc bạn không có quyền truy cập'
+        });
+      }
+
+      // Generate QR data
+      const qrData = {
+        type: 'station_checkin',
+        stationId: parseInt(id),
+        stationName: station.ten_tram,
+        address: station.dia_chi,
+        timestamp: Date.now(),
+        version: '1.0'
+      };
+
+      res.status(200).json({
+        success: true,
+        data: {
+          qrData: JSON.stringify(qrData),
+          station: {
+            id: station.id_tram,
+            name: station.ten_tram,
+            address: station.dia_chi
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Get station QR error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi tạo QR code',
+        error: error.message
+      });
+    }
+  }
+
+  /**
    * Create new station
    * POST /api/owner/stations
    */

@@ -138,6 +138,7 @@ export const ownerAPI = {
   // Stations
   getStations: () => api.get('/api/owner/stations'),
   getStation: (id) => api.get(`/api/owner/stations/${id}`),
+  getStationQR: (id) => api.get(`/api/owner/stations/${id}/qr`),
   createStation: (data) => api.post('/api/owner/stations', data),
   updateStation: (id, data) => api.put(`/api/owner/stations/${id}`, data),
   deleteStation: (id) => api.delete(`/api/owner/stations/${id}`),

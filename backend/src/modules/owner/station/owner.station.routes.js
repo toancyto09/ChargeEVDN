@@ -29,6 +29,9 @@ router.get('/stations', ownerStationController.getStations);
 // Get single station
 router.get('/stations/:id', ownerStationController.getStation);
 
+// Get QR code for station
+router.get('/stations/:id/qr', ownerStationController.getStationQR);
+
 // Create new station
 router.post('/stations', ownerStationController.createStation);
 

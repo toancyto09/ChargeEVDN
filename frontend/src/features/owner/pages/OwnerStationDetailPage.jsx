@@ -3,13 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Building2, MapPin, DollarSign, Zap, Users, TrendingUp, 
   Clock, CheckCircle, XCircle, AlertCircle, Edit, ArrowLeft,
-  Calendar, Battery, Star, Package, Activity
+  Calendar, Battery, Star, Package, Activity, QrCode
 } from 'lucide-react';
 import { toast } from 'sonner';
 import PageLayout from '../../../components/layout/PageLayout';
 import { ownerAPI } from '../../../services/api';
 import EditStationModal from '../components/station/EditStationModal';
 import ConnectorManagementModal from '../components/connector/ConnectorManagementModal';
+import QRCodeModal from '../components/station/QRCodeModal';
 
 /**
  * Owner Station Detail Page
@@ -22,6 +23,7 @@ export default function OwnerStationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showConnectorModal, setShowConnectorModal] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
 
   useEffect(() => {
     loadStationDetail();
@@ -144,6 +146,13 @@ export default function OwnerStationDetailPage() {
               </div>
               
               <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowQRModal(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  <QrCode className="w-5 h-5" />
+                  QR Code
+                </button>
                 <button
                   onClick={() => setShowConnectorModal(true)}
                   className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
@@ -389,6 +398,12 @@ export default function OwnerStationDetailPage() {
       <ConnectorManagementModal
         isOpen={showConnectorModal}
         onClose={() => setShowConnectorModal(false)}
+        station={station}
+      />
+
+      <QRCodeModal
+        isOpen={showQRModal}
+        onClose={() => setShowQRModal(false)}
         station={station}
       />
     </PageLayout>
