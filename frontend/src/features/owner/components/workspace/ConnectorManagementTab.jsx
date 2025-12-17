@@ -7,6 +7,7 @@ import { ownerAPI } from '../../../../services/api';
 export default function ConnectorManagementTab({ stationId }) {
   const [connectors, setConnectors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filterType, setFilterType] = useState('all');
 
   useEffect(() => {
     loadConnectors();
@@ -47,6 +48,14 @@ export default function ConnectorManagementTab({ stationId }) {
     bao_tri: { label: 'Bảo trì', color: 'red' }
   };
 
+  // Get unique connector types for filter
+  const connectorTypes = ['all', ...new Set(connectors.map(c => c.ma_cong).filter(Boolean))];
+
+  // Filter connectors by type
+  const filteredConnectors = filterType === 'all' 
+    ? connectors 
+    : connectors.filter(c => c.ma_cong === filterType);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -57,9 +66,29 @@ export default function ConnectorManagementTab({ stationId }) {
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-6">
+      {/* Header with Filter */}
+      <div className="mb-6 space-y-4">
         <h2 className="text-xl font-bold text-gray-900">Quản lý cổng sạc</h2>
+        
+        {/* Filter Dropdown */}
+        {connectors.length > 0 && (
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700">Lọc theo loại:</label>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">Tất cả loại cổng</option>
+              {connectorTypes.filter(t => t !== 'all').map((type) => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+            <span className="text-sm text-gray-600">
+              ({filteredConnectors.length} cổng)
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Connectors Grid */}
@@ -71,7 +100,7 @@ export default function ConnectorManagementTab({ stationId }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {connectors.map((connector) => {
+          {filteredConnectors.map((connector) => {
             const status = statusConfig[connector.trang_thai] || statusConfig.trong;
             return (
               <div key={connector.id_cong_sac} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-shadow">
