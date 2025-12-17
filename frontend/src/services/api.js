@@ -150,6 +150,14 @@ export const ownerAPI = {
   updateConnector: (connectorId, data) => api.put(`/api/owner/connectors/${connectorId}`, data),
   deleteConnector: (connectorId) => api.delete(`/api/owner/connectors/${connectorId}`),
   changeConnectorStatus: (connectorId, status) => api.patch(`/api/owner/connectors/${connectorId}/status`, { trang_thai: status }),
+  
+  // Bookings
+  getBookings: (params) => api.get('/api/owner/bookings', { params }),
+  getBookingStats: (params) => api.get('/api/owner/bookings/stats', { params }),
+  getBookingDetail: (id) => api.get(`/api/owner/bookings/${id}`),
+  confirmBooking: (id) => api.post(`/api/owner/bookings/${id}/confirm`),
+  cancelBooking: (id) => api.post(`/api/owner/bookings/${id}/cancel`),
+  getBookingsCalendar: (params) => api.get('/api/owner/bookings/calendar', { params }),
 };
 
 // Booking API

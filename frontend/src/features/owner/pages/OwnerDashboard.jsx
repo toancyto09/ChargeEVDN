@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, TrendingUp, Users, Zap, DollarSign, LogOut, Settings } from 'lucide-react';
+import { Building2, TrendingUp, Users, Zap, DollarSign, LogOut, Settings, ArrowRight, MapPin, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import PageLayout from '../../../components/layout/PageLayout';
-import { authAPI } from '../../../services/api';
+import { authAPI, ownerAPI } from '../../../services/api';
 
 /**
  * OwnerDashboard
@@ -13,9 +13,17 @@ export default function OwnerDashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [stations, setStations] = useState([]);
+  const [stats, setStats] = useState({
+    totalStations: 0,
+    totalBookings: 0,
+    activeSessions: 0,
+    monthlyRevenue: 0
+  });
 
   useEffect(() => {
     loadOwnerInfo();
+    loadStations();
   }, []);
 
   const loadOwnerInfo = async () => {
@@ -37,6 +45,30 @@ export default function OwnerDashboard() {
       navigate('/login');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadStations = async () => {
+    try {
+      const response = await ownerAPI.getStations();
+      // Handle different response structures
+      const stationsData = Array.isArray(response.data) 
+        ? response.data 
+        : (response.data?.data || []);
+      
+      setStations(stationsData);
+      
+      // Calculate stats from stations
+      if (Array.isArray(stationsData)) {
+        setStats({
+          totalStations: stationsData.length,
+          totalBookings: stationsData.reduce((sum, s) => sum + (s.total_bookings || 0), 0),
+          activeSessions: stationsData.reduce((sum, s) => sum + (s.active_sessions || 0), 0),
+          monthlyRevenue: stationsData.reduce((sum, s) => sum + (s.monthly_revenue || 0), 0)
+        });
+      }
+    } catch (error) {
+      console.error('Error loading stations:', error);
     }
   };
 
@@ -111,9 +143,8 @@ export default function OwnerDashboard() {
               <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                 <Building2 className="w-6 h-6 text-blue-600" />
               </div>
-              <span className="text-sm text-green-600 font-medium">+0%</span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">0</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">{stats.totalStations}</h3>
             <p className="text-sm text-gray-600">Trạm sạc</p>
           </div>
 
@@ -123,9 +154,8 @@ export default function OwnerDashboard() {
               <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
                 <Users className="w-6 h-6 text-green-600" />
               </div>
-              <span className="text-sm text-green-600 font-medium">+0%</span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">0</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">{stats.totalBookings}</h3>
             <p className="text-sm text-gray-600">Lượt đặt chỗ</p>
           </div>
 
@@ -137,7 +167,7 @@ export default function OwnerDashboard() {
               </div>
               <span className="text-sm text-yellow-600 font-medium">Live</span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">0</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">{stats.activeSessions}</h3>
             <p className="text-sm text-gray-600">Đang sạc</p>
           </div>
 
@@ -147,9 +177,10 @@ export default function OwnerDashboard() {
               <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                 <DollarSign className="w-6 h-6 text-purple-600" />
               </div>
-              <span className="text-sm text-green-600 font-medium">+0%</span>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">0 đ</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+              {(stats.monthlyRevenue || 0).toLocaleString('vi-VN')} đ
+            </h3>
             <p className="text-sm text-gray-600">Doanh thu tháng</p>
           </div>
         </div>
@@ -177,13 +208,16 @@ export default function OwnerDashboard() {
               </div>
             </button>
 
-            <button className="flex items-center gap-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 border-2 border-green-200 rounded-xl transition-all group">
+            <button 
+              onClick={() => navigate('/owner/bookings')}
+              className="flex items-center gap-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 border-2 border-green-200 rounded-xl transition-all group"
+            >
               <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Users className="w-6 h-6 text-white" />
               </div>
               <div className="text-left">
                 <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
-                  Đặt chỗ
+                  Quản lý Đặt chỗ
                 </h3>
                 <p className="text-sm text-gray-600">
                   Xem lịch đặt chỗ
@@ -207,28 +241,122 @@ export default function OwnerDashboard() {
           </div>
         </div>
 
-        {/* Coming Soon Notice */}
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-8 text-center">
-          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Building2 className="w-10 h-10 text-blue-600" />
+        {/* Stations Table */}
+        <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900">
+              Danh sách trạm sạc của tôi
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Quản lý và theo dõi tất cả các trạm sạc
+            </p>
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            🚧 Đang phát triển
-          </h3>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Dashboard doanh nghiệp đang được phát triển với đầy đủ tính năng quản lý trạm sạc, 
-            theo dõi đặt chỗ, thống kê doanh thu và nhiều tính năng khác.
-          </p>
-          <div className="mt-6 flex items-center justify-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-gray-600">Authentication</span>
+
+          {stations.length === 0 ? (
+            <div className="p-12 text-center">
+              <Building2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Chưa có trạm nào</h3>
+              <p className="text-gray-600 mb-6">Thêm trạm sạc đầu tiên của bạn để bắt đầu</p>
+              <button
+                onClick={() => navigate('/owner/stations')}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Thêm trạm sạc
+              </button>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-              <span className="text-gray-600">Đang phát triển</span>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Trạm
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Trạng thái
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Cổng sạc
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Đánh giá
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Thao tác
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {stations.map((station) => (
+                    <tr key={station.id_tram} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Building2 className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900">{station.ten_tram}</div>
+                            <div className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                              <MapPin className="w-3 h-3" />
+                              <span className="line-clamp-1">{station.dia_chi}</span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {(station.don_gia_kwh || 0).toLocaleString('vi-VN')} đ/kWh
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {station.trang_thai_duyet === 'approved' ? (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                            <CheckCircle className="w-3 h-3" />
+                            Đã duyệt
+                          </span>
+                        ) : station.trang_thai_duyet === 'pending' ? (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
+                            <Clock className="w-3 h-3" />
+                            Chờ duyệt
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                            <XCircle className="w-3 h-3" />
+                            Bị từ chối
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="text-sm">
+                          <div className="font-semibold text-gray-900">
+                            {station.so_cong_hoat_dong || 0}/{station.tong_so_cong || 0}
+                          </div>
+                          <div className="text-xs text-gray-600">hoạt động</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="text-sm">
+                          <div className="font-semibold text-gray-900">
+                            ⭐ {station.diem_danh_gia_trung_binh || 0}
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            ({station.so_luong_danh_gia || 0} đánh giá)
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => navigate(`/owner/stations/${station.id_tram}`)}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                        >
+                          Quản lý
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </PageLayout>

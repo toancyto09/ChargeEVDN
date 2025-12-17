@@ -28,7 +28,8 @@ import PaymentSuccessPage from './features/payments/pages/PaymentSuccessPage';
 import PaymentFailedPage from './features/payments/pages/PaymentFailedPage';
 import PaymentHistoryPage from './features/payments/pages/PaymentHistoryPage';
 import { ActiveSessionPage, SessionsPage, QRCheckinPage } from './features/session/pages';
-import { OwnerDashboard, OwnerStationsPage, OwnerStationDetailPage } from './features/owner/pages';
+import { OwnerDashboard, OwnerStationsPage, OwnerStationDetailPage, OwnerStationWorkspacePage, OwnerBookingsPage } from './features/owner/pages';
+import { OwnerStationProvider } from './features/owner/contexts/OwnerStationContext';
 import BottomNav from './components/layout/BottomNav';
 import { UserRoute, OwnerRoute } from './components/routes/ProtectedRoute';
 
@@ -315,18 +316,46 @@ function AppContent() {
             element={<UserRoute><QRCheckinPage /></UserRoute>} 
           />
 
-          {/* Owner routes - OWNER ONLY */}
+          {/* Owner routes - OWNER ONLY (Wrapped in OwnerStationProvider) */}
           <Route 
             path="/owner/dashboard" 
-            element={<OwnerRoute><OwnerDashboard /></OwnerRoute>} 
+            element={
+              <OwnerRoute>
+                <OwnerStationProvider>
+                  <OwnerDashboard />
+                </OwnerStationProvider>
+              </OwnerRoute>
+            } 
           />
           <Route 
             path="/owner/stations" 
-            element={<OwnerRoute><OwnerStationsPage /></OwnerRoute>} 
+            element={
+              <OwnerRoute>
+                <OwnerStationProvider>
+                  <OwnerStationsPage />
+                </OwnerStationProvider>
+              </OwnerRoute>
+            } 
           />
           <Route 
             path="/owner/stations/:id" 
-            element={<OwnerRoute><OwnerStationDetailPage /></OwnerRoute>} 
+            element={
+              <OwnerRoute>
+                <OwnerStationProvider>
+                  <OwnerStationWorkspacePage />
+                </OwnerStationProvider>
+              </OwnerRoute>
+            } 
+          />
+          <Route 
+            path="/owner/bookings" 
+            element={
+              <OwnerRoute>
+                <OwnerStationProvider>
+                  <OwnerBookingsPage />
+                </OwnerStationProvider>
+              </OwnerRoute>
+            } 
           />
         </Routes>
       </main>
