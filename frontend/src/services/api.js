@@ -158,6 +158,11 @@ export const ownerAPI = {
   confirmBooking: (id) => api.post(`/api/owner/bookings/${id}/confirm`),
   cancelBooking: (id) => api.post(`/api/owner/bookings/${id}/cancel`),
   getBookingsCalendar: (params) => api.get('/api/owner/bookings/calendar', { params }),
+  
+  // Sessions
+  getSessions: (params) => api.get('/api/owner/sessions', { params }),
+  getSessionStats: (params) => api.get('/api/owner/sessions/stats', { params }),
+  getSessionDetail: (id) => api.get(`/api/owner/sessions/${id}`),
 };
 
 // Booking API

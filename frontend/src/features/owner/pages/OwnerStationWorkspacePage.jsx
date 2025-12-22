@@ -9,6 +9,7 @@ import PageLayout from '../../../components/layout/PageLayout';
 import StationOverviewTab from '../components/workspace/StationOverviewTab';
 import ConnectorManagementTab from '../components/workspace/ConnectorManagementTab';
 import BookingManagementTab from '../components/workspace/BookingManagementTab';
+import SessionManagementTab from '../components/workspace/SessionManagementTab';
 
 export default function OwnerStationWorkspacePage() {
   const { id } = useParams();
@@ -116,13 +117,7 @@ export default function OwnerStationWorkspacePage() {
         {activeTab === 'overview' && <StationOverviewTab stationId={Number(id)} />}
         {activeTab === 'connectors' && <ConnectorManagementTab stationId={Number(id)} />}
         {activeTab === 'bookings' && <BookingManagementTab stationId={Number(id)} />}
-        {activeTab === 'sessions' && (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-            <Activity className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Quản lý Phiên sạc</h3>
-            <p className="text-gray-600">Tính năng này sẽ được phát triển sau</p>
-          </div>
-        )}
+        {activeTab === 'sessions' && <SessionManagementTab stationId={Number(id)} />}
       </div>
     </PageLayout>
   );
