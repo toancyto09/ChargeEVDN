@@ -50,25 +50,38 @@ export default function OwnerDashboard() {
 
   const loadStations = async () => {
     try {
-      const response = await ownerAPI.getStations();
+      const [stationsRes, bookingStatsRes, sessionStatsRes] = await Promise.all([
+        ownerAPI.getStations(),
+        ownerAPI.getBookingStats({}), // All stations
+        ownerAPI.getSessionStats({})  // All stations
+      ]);
+      
       // Handle different response structures
-      const stationsData = Array.isArray(response.data) 
-        ? response.data 
-        : (response.data?.data || []);
+      const stationsData = Array.isArray(stationsRes.data) 
+        ? stationsRes.data 
+        : (stationsRes.data?.data || []);
       
       setStations(stationsData);
       
-      // Calculate stats from stations
-      if (Array.isArray(stationsData)) {
-        setStats({
-          totalStations: stationsData.length,
-          totalBookings: stationsData.reduce((sum, s) => sum + (s.total_bookings || 0), 0),
-          activeSessions: stationsData.reduce((sum, s) => sum + (s.active_sessions || 0), 0),
-          monthlyRevenue: stationsData.reduce((sum, s) => sum + (s.monthly_revenue || 0), 0)
-        });
-      }
+      // Get real stats from APIs
+      const bookingStats = bookingStatsRes.data?.data || bookingStatsRes.data || {};
+      const sessionStats = sessionStatsRes.data?.data || sessionStatsRes.data || {};
+      
+      setStats({
+        totalStations: stationsData.length,
+        totalBookings: bookingStats.total_bookings || 0,
+        activeSessions: sessionStats.by_status?.dang_sac || 0,
+        monthlyRevenue: sessionStats.total_revenue || 0
+      });
     } catch (error) {
-      console.error('Error loading stations:', error);
+      console.error('Error loading dashboard data:', error);
+      // Set default empty stats on error
+      setStats({
+        totalStations: 0,
+        totalBookings: 0,
+        activeSessions: 0,
+        monthlyRevenue: 0
+      });
     }
   };
 
@@ -179,7 +192,7 @@ export default function OwnerDashboard() {
               </div>
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-1">
-              {(stats.monthlyRevenue || 0).toLocaleString('vi-VN')} đ
+              {Math.round(stats.monthlyRevenue || 0).toLocaleString('vi-VN')} đ
             </h3>
             <p className="text-sm text-gray-600">Doanh thu tháng</p>
           </div>
@@ -301,7 +314,7 @@ export default function OwnerDashboard() {
                               <span className="line-clamp-1">{station.dia_chi}</span>
                             </div>
                             <div className="text-xs text-gray-500 mt-1">
-                              {(station.don_gia_kwh || 0).toLocaleString('vi-VN')} đ/kWh
+                              {Math.round(station.gia_kwh || 0).toLocaleString('vi-VN')} đ/kWh
                             </div>
                           </div>
                         </div>
@@ -327,7 +340,7 @@ export default function OwnerDashboard() {
                       <td className="px-6 py-4 text-center">
                         <div className="text-sm">
                           <div className="font-semibold text-gray-900">
-                            {station.so_cong_hoat_dong || 0}/{station.tong_so_cong || 0}
+                            {(Number(station.cong_trong) || 0) + (Number(station.cong_dang_dung) || 0)}/{station.tong_cong || 0}
                           </div>
                           <div className="text-xs text-gray-600">hoạt động</div>
                         </div>
@@ -335,10 +348,10 @@ export default function OwnerDashboard() {
                       <td className="px-6 py-4 text-center">
                         <div className="text-sm">
                           <div className="font-semibold text-gray-900">
-                            ⭐ {station.diem_danh_gia_trung_binh || 0}
+                            ⭐ {Number(station.diem_trung_binh || 0).toFixed(1)}
                           </div>
                           <div className="text-xs text-gray-600">
-                            ({station.so_luong_danh_gia || 0} đánh giá)
+                            ({station.so_danh_gia || 0} đánh giá)
                           </div>
                         </div>
                       </td>

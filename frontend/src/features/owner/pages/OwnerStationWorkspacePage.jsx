@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, LayoutDashboard, Zap, Users, Activity } from 'lucide-react';
+import { ArrowLeft, LayoutDashboard, Zap, Users, Activity, Star } from 'lucide-react';
 import { useOwnerStation } from '../contexts/OwnerStationContext';
 import StationSelector from '../components/shared/StationSelector';
 import PageLayout from '../../../components/layout/PageLayout';
@@ -10,6 +10,7 @@ import StationOverviewTab from '../components/workspace/StationOverviewTab';
 import ConnectorManagementTab from '../components/workspace/ConnectorManagementTab';
 import BookingManagementTab from '../components/workspace/BookingManagementTab';
 import SessionManagementTab from '../components/workspace/SessionManagementTab';
+import RatingManagementTab from '../components/workspace/RatingManagementTab';
 
 export default function OwnerStationWorkspacePage() {
   const { id } = useParams();
@@ -62,7 +63,8 @@ export default function OwnerStationWorkspacePage() {
     { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
     { id: 'connectors', label: 'Cổng sạc', icon: Zap },
     { id: 'bookings', label: 'Đặt chỗ', icon: Users },
-    { id: 'sessions', label: 'Phiên sạc', icon: Activity }
+    { id: 'sessions', label: 'Phiên sạc', icon: Activity },
+    { id: 'ratings', label: 'Đánh giá', icon: Star }
   ];
 
   return (
@@ -118,6 +120,7 @@ export default function OwnerStationWorkspacePage() {
         {activeTab === 'connectors' && <ConnectorManagementTab stationId={Number(id)} />}
         {activeTab === 'bookings' && <BookingManagementTab stationId={Number(id)} />}
         {activeTab === 'sessions' && <SessionManagementTab stationId={Number(id)} />}
+        {activeTab === 'ratings' && <RatingManagementTab stationId={Number(id)} />}
       </div>
     </PageLayout>
   );

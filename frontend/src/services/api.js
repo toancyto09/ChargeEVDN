@@ -163,6 +163,11 @@ export const ownerAPI = {
   getSessions: (params) => api.get('/api/owner/sessions', { params }),
   getSessionStats: (params) => api.get('/api/owner/sessions/stats', { params }),
   getSessionDetail: (id) => api.get(`/api/owner/sessions/${id}`),
+  
+  // Ratings
+  getRatings: (params) => api.get('/api/owner/ratings', { params }),
+  getRatingStats: (params) => api.get('/api/owner/ratings/stats', { params }),
+  getRatingDetail: (id) => api.get(`/api/owner/ratings/${id}`),
 };
 
 // Booking API
