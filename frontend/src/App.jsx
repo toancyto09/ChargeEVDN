@@ -30,6 +30,8 @@ import PaymentHistoryPage from './features/payments/pages/PaymentHistoryPage';
 import { ActiveSessionPage, SessionsPage, QRCheckinPage } from './features/session/pages';
 import { OwnerDashboard, OwnerStationsPage, OwnerStationDetailPage, OwnerStationWorkspacePage, OwnerBookingsPage } from './features/owner/pages';
 import { OwnerStationProvider } from './features/owner/contexts/OwnerStationContext';
+import AdminDashboard from './features/admin/pages/AdminDashboard';
+import StationApprovalPage from './features/admin/pages/StationApprovalPage';
 import BottomNav from './components/layout/BottomNav';
 import { UserRoute, OwnerRoute } from './components/routes/ProtectedRoute';
 
@@ -90,7 +92,8 @@ function AppContent() {
     location.pathname.startsWith('/stations/') ||
     location.pathname.startsWith('/payment/') ||
     location.pathname.startsWith('/sessions') ||
-    location.pathname.startsWith('/owner/');
+    location.pathname.startsWith('/owner/') ||
+    location.pathname.startsWith('/admin/');
 
   const isAuthPage =
     location.pathname === '/login' ||
@@ -357,6 +360,17 @@ function AppContent() {
               </OwnerRoute>
             } 
           />
+
+          {/* Admin routes - ADMIN ONLY */}
+          <Route 
+            path="/admin/dashboard" 
+            element={<AdminDashboard />}
+          />
+          <Route 
+            path="/admin/stations" 
+            element={<StationApprovalPage />}
+          />
+
         </Routes>
       </main>
 
