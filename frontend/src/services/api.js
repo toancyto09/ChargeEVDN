@@ -170,6 +170,16 @@ export const ownerAPI = {
   getRatingDetail: (id) => api.get(`/api/owner/ratings/${id}`),
 };
 
+// Admin API
+export const adminAPI = {
+  // Stations
+  getStations: (params) => api.get('/api/admin/stations', { params }),
+  getStationStats: () => api.get('/api/admin/stations/stats'),
+  getStationDetail: (id) => api.get(`/api/admin/stations/${id}`),
+  approveStation: (id) => api.post(`/api/admin/stations/${id}/approve`),
+  rejectStation: (id, reason) => api.post(`/api/admin/stations/${id}/reject`, { reason }),
+};
+
 // Booking API
 export const bookingAPI = {
   // Create a new booking
