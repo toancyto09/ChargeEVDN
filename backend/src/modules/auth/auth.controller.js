@@ -55,7 +55,8 @@ export const login = asyncHandler(async (req, res) => {
  * Get current user profile (requires authentication)
  */
 export const getProfile = asyncHandler(async (req, res) => {
-  const user = await authService.getUserProfile(req.user.id);
+  const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
+  const user = await authService.getUserProfile(userId);
 
   res.status(HTTP_STATUS.OK).json({
     success: true,

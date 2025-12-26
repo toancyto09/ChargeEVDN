@@ -31,8 +31,21 @@ api.interceptors.response.use(
   },
   (error) => {
     const status = error.response?.status;
+    const message = error.response?.data?.message;
     const token = localStorage.getItem('token');
     const currentPath = window.location.pathname;
+
+    // Xử lý tài khoản bị khóa
+    if (status === 403 && message && message.includes('khóa')) {
+      localStorage.removeItem('token');
+      toast.error('Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.', {
+        duration: 5000,
+      });
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1000);
+      return Promise.reject(error);
+    }
 
     // Xử lý token hết hạn hoặc không hợp lệ (401 hoặc 403)
     if ((status === 401 || status === 403) && token) {
@@ -178,6 +191,17 @@ export const adminAPI = {
   getStationDetail: (id) => api.get(`/api/admin/stations/${id}`),
   approveStation: (id) => api.post(`/api/admin/stations/${id}/approve`),
   rejectStation: (id, reason) => api.post(`/api/admin/stations/${id}/reject`, { reason }),
+  
+  // Users
+  getUsers: (params) => api.get('/api/admin/users', { params }),
+  getUserStats: () => api.get('/api/admin/users/stats'),
+  getUserDetail: (id) => api.get(`/api/admin/users/${id}`),
+  createUser: (userData) => api.post('/api/admin/users', userData),
+  updateUser: (id, data) => api.patch(`/api/admin/users/${id}`, data),
+  updateUserStatus: (id, status) => api.patch(`/api/admin/users/${id}/status`, { status }),
+  changeUserRole: (id, role) => api.patch(`/api/admin/users/${id}/role`, { role }),
+  resetUserPassword: (id) => api.post(`/api/admin/users/${id}/reset-password`),
+  deleteUser: (id) => api.delete(`/api/admin/users/${id}`),
 };
 
 // Booking API

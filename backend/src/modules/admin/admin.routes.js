@@ -1,5 +1,6 @@
 import express from 'express';
 import stationRoutes from './station/admin.station.routes.js';
+import userRoutes from './user/admin.user.routes.js';
 
 const router = express.Router();
 
@@ -10,5 +11,8 @@ const router = express.Router();
 
 // Station approval routes
 router.use('/stations', stationRoutes);
+
+// User management routes
+router.use('/users', userRoutes);
 
 export default router;

@@ -14,7 +14,7 @@ import * as profileService from './profile.service.js';
  * @access  Private
  */
 export const getProfile = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
 
   const profile = await profileService.getProfile(userId);
 
@@ -31,7 +31,7 @@ export const getProfile = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const updateProfile = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
   const updateData = req.body;
 
   const updatedProfile = await profileService.updateProfile(userId, updateData);
@@ -49,7 +49,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const changePassword = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
   const { currentPassword, newPassword } = req.body;
 
   await profileService.changePassword(userId, currentPassword, newPassword);
@@ -66,7 +66,7 @@ export const changePassword = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const uploadAvatar = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
 
   // Check if file was uploaded
   if (!req.file) {
