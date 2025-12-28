@@ -286,7 +286,7 @@ export default function AdminDashboard() {
             </button>
 
             <button 
-              onClick={() => toast.info('Chức năng đang phát triển')}
+              onClick={() => navigate('/admin/analytics')}
               className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 border-2 border-purple-200 rounded-xl transition-all group"
             >
               <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -294,7 +294,7 @@ export default function AdminDashboard() {
               </div>
               <div className="text-left flex-1">
                 <h3 className="font-semibold text-gray-900 group-hover:text-purple-700 transition-colors">
-                  Báo cáo Hệ thống
+                  Analytics Dashboard
                 </h3>
                 <p className="text-sm text-gray-600">
                   Thống kê & phân tích

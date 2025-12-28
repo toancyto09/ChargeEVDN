@@ -202,6 +202,16 @@ export const adminAPI = {
   changeUserRole: (id, role) => api.patch(`/api/admin/users/${id}/role`, { role }),
   resetUserPassword: (id) => api.post(`/api/admin/users/${id}/reset-password`),
   deleteUser: (id) => api.delete(`/api/admin/users/${id}`),
+
+  // Analytics
+  getAnalyticsOverview: () => api.get('/api/admin/analytics/overview'),
+  getRevenueChart: (params) => api.get('/api/admin/analytics/revenue', { params }),
+  getUserGrowthChart: (params) => api.get('/api/admin/analytics/users', { params }),
+  getSessionsChart: (params) => api.get('/api/admin/analytics/sessions', { params }),
+  getTopStations: (params) => api.get('/api/admin/analytics/top-stations', { params }),
+  getBookingStatus: () => api.get('/api/admin/analytics/booking-status'),
+  getRecentTransactions: (params) => api.get('/api/admin/analytics/recent-transactions', { params }),
+  getRevenueByBusiness: (params) => api.get('/api/admin/analytics/revenue-by-business', { params }),
 };
 
 // Booking API

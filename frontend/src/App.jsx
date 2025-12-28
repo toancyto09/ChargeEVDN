@@ -33,6 +33,7 @@ import { OwnerStationProvider } from './features/owner/contexts/OwnerStationCont
 import AdminDashboard from './features/admin/pages/AdminDashboard';
 import StationApprovalPage from './features/admin/pages/StationApprovalPage';
 import UserManagementPage from './features/admin/pages/UserManagementPage';
+import AdminAnalyticsPage from './features/admin/pages/AdminAnalyticsPage';
 import BottomNav from './components/layout/BottomNav';
 import { UserRoute, OwnerRoute } from './components/routes/ProtectedRoute';
 
@@ -374,6 +375,10 @@ function AppContent() {
           <Route 
             path="/admin/users" 
             element={<UserManagementPage />}
+          />
+          <Route 
+            path="/admin/analytics" 
+            element={<AdminAnalyticsPage />}
           />
 
         </Routes>
