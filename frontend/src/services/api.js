@@ -212,6 +212,11 @@ export const adminAPI = {
   getBookingStatus: () => api.get('/api/admin/analytics/booking-status'),
   getRecentTransactions: (params) => api.get('/api/admin/analytics/recent-transactions', { params }),
   getRevenueByBusiness: (params) => api.get('/api/admin/analytics/revenue-by-business', { params }),
+
+  // Audit Logs
+  getAuditLogs: (params) => api.get('/api/admin/audit-logs', { params }),
+  getAuditLogStatistics: (params) => api.get('/api/admin/audit-logs/statistics', { params }),
+  getAuditLogTimeline: (params) => api.get('/api/admin/audit-logs/timeline', { params }),
 };
 
 // Booking API

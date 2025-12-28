@@ -10,6 +10,7 @@ import * as passwordResetController from './auth.passwordReset.controller.js';
 import * as googleAuthController from './auth.google.controller.js';
 import * as authValidator from './auth.validator.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
+import { auditLog } from '../../middlewares/auditLog.middleware.js';
 
 const router = Router();
 
@@ -24,6 +25,7 @@ const router = Router();
 router.post(
   '/register',
   authValidator.validateRegister,
+  auditLog.register,
   authController.register
 );
 
@@ -31,7 +33,7 @@ router.post(
  * POST /api/auth/login
  * Login with email and password
  */
-router.post('/login', authValidator.validateLogin, authController.login);
+router.post('/login', authValidator.validateLogin, auditLog.login, authController.login);
 
 // ============================
 // PASSWORD RESET ROUTES (OTP-based)
@@ -113,7 +115,7 @@ router.get('/profile', authenticateToken, authController.getProfile);
  * POST /api/auth/logout
  * Logout user (client-side token removal)
  */
-router.post('/logout', authenticateToken, authController.logout);
+router.post('/logout', authenticateToken, auditLog.logout, authController.logout);
 
 export default router;
 

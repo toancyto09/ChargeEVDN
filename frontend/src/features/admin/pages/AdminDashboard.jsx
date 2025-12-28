@@ -302,6 +302,24 @@ export default function AdminDashboard() {
               </div>
               <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
             </button>
+
+            <button 
+              onClick={() => navigate('/admin/audit-logs')}
+              className="flex items-center gap-4 p-4 bg-gradient-to-r from-indigo-50 to-indigo-100 hover:from-indigo-100 hover:to-indigo-200 border-2 border-indigo-200 rounded-xl transition-all group"
+            >
+              <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-left flex-1">
+                <h3 className="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">
+                  Nhật ký hệ thống
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Theo dõi hoạt động
+                </p>
+              </div>
+              <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+            </button>
           </div>
         </div>
 

@@ -1,12 +1,11 @@
 import express from 'express';
-import adminStationController from './admin.station.controller.js';
+import adminAuditLogController from './admin.auditLog.controller.js';
 import { authenticateToken } from '../../../middlewares/auth.middleware.js';
-import { auditLog } from '../../../middlewares/auditLog.middleware.js';
 
 const router = express.Router();
 
 /**
- * Admin Station Routes
+ * Admin Audit Log Routes
  * All routes protected by admin auth middleware
  */
 
@@ -26,19 +25,13 @@ const checkAdminRole = (req, res, next) => {
 // Apply auth + admin check to all routes
 router.use(authenticateToken, checkAdminRole);
 
-// Get all stations (with filter)
-router.get('/', adminStationController.getStations);
+// Get audit logs with filters
+router.get('/', adminAuditLogController.getLogs);
 
-// Get station statistics
-router.get('/stats', adminStationController.getStats);
+// Get statistics
+router.get('/statistics', adminAuditLogController.getStatistics);
 
-// Get station detail
-router.get('/:id', adminStationController.getStationDetail);
-
-// Approve station
-router.post('/:id/approve', auditLog.stationApprove, adminStationController.approveStation);
-
-// Reject station
-router.post('/:id/reject', auditLog.stationReject, adminStationController.rejectStation);
+// Get activity timeline
+router.get('/timeline', adminAuditLogController.getTimeline);
 
 export default router;
