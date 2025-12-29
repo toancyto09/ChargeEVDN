@@ -14,7 +14,7 @@ import * as vehicleService from './vehicle.service.js';
  * @access  Private
  */
 export const getVehicles = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
 
   const vehicles = await vehicleService.getUserVehicles(userId);
 
@@ -31,7 +31,7 @@ export const getVehicles = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const getVehicleById = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
   const vehicleId = req.params.id;
 
   const vehicle = await vehicleService.getVehicleById(vehicleId, userId);
@@ -49,7 +49,7 @@ export const getVehicleById = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const createVehicle = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
   const vehicleData = req.body;
 
   const newVehicle = await vehicleService.createVehicle(userId, vehicleData);
@@ -67,7 +67,7 @@ export const createVehicle = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const updateVehicle = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
   const vehicleId = req.params.id;
   const updateData = req.body;
 
@@ -86,7 +86,7 @@ export const updateVehicle = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const deleteVehicle = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
   const vehicleId = req.params.id;
 
   await vehicleService.deleteVehicle(vehicleId, userId);
@@ -103,7 +103,7 @@ export const deleteVehicle = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const updateSOC = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
   const vehicleId = req.params.id;
   const { soc } = req.body;
 
@@ -122,7 +122,7 @@ export const updateSOC = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const setMainVehicle = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
   const vehicleId = req.params.id;
 
   const updatedVehicle = await vehicleService.setMainVehicle(vehicleId, userId);

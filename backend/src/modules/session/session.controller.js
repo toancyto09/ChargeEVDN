@@ -155,7 +155,7 @@ class SessionController {
    */
   async getUserSessions(req, res) {
     try {
-      const userId = parseInt(req.user.id);
+      const userId = parseInt(req.user.id_nguoi_dung || req.user.userId || req.user.id);
       const { status } = req.query;
 
       const sessions = await sessionService.getUserSessions(userId, status);

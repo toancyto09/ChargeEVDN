@@ -12,7 +12,7 @@ class BookingController {
    */
   async createBooking(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
       const bookingData = req.body;
 
       // Validate required fields
@@ -98,7 +98,7 @@ class BookingController {
    */
   async getUserBookings(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
       const filters = {
         status: req.query.status,
         limit: parseInt(req.query.limit) || 50,
@@ -133,7 +133,7 @@ class BookingController {
    */
   async getBookingById(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
       const bookingId = req.params.id;
 
       const booking = await bookingService.getBookingById(bookingId, userId);
@@ -165,7 +165,7 @@ class BookingController {
    */
   async extendBooking(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
       const bookingId = req.params.id;
       const { extension_minutes = 15 } = req.body;
 
@@ -218,7 +218,7 @@ class BookingController {
    */
   async cancelBooking(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
       const bookingId = req.params.id;
 
       const booking = await bookingService.cancelBooking(bookingId, userId);
