@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { SOCIndicator } from './SOCIndicator';
 
 export function FilterPanel({ filters, onFiltersChange, onClose, isDesktop }) {
   const [localFilters, setLocalFilters] = useState(filters);
@@ -26,25 +25,12 @@ export function FilterPanel({ filters, onFiltersChange, onClose, isDesktop }) {
     }
   };
 
-  const handleProviderToggle = (provider) => {
-    const currentProviders = localFilters.providers || [];
-    const newProviders = currentProviders.includes(provider)
-      ? currentProviders.filter((p) => p !== provider)
-      : [...currentProviders, provider];
-
-    handleFilterChange('providers', newProviders);
-  };
-
   const handleReset = () => {
     const resetFilters = {
       status: 'all',
       connectorType: 'all',
       powerRange: 'all',
-      maxPrice: 10000,
       maxDistance: 20,
-      batteryLevel: 50,
-      minRating: 0,
-      providers: [],
     };
     setLocalFilters(resetFilters);
     onFiltersChange(resetFilters);
@@ -67,7 +53,33 @@ export function FilterPanel({ filters, onFiltersChange, onClose, isDesktop }) {
 
       {/* Filters */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {/* Connector Type Filter - Button Grid */}
+        {/* Status Filter - Availability */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Trạng thái cổng
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: 'all', label: 'Tất cả', icon: '🔌' },
+              { value: 'trong', label: 'Còn trống', icon: '⚡' },
+              { value: 'dang_su_dung', label: 'Đang dùng', icon: '🔋' },
+            ].map((status) => (
+              <button
+                key={status.value}
+                onClick={() => handleFilterChange('status', status.value)}
+                className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
+                  localFilters.status === status.value
+                    ? 'bg-emerald-500 text-white shadow-md'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {status.icon} {status.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Connector Type Filter */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
             Loại cổng sạc
@@ -75,17 +87,17 @@ export function FilterPanel({ filters, onFiltersChange, onClose, isDesktop }) {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => handleFilterChange('connectorType', 'all')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
                 localFilters.connectorType === 'all'
                   ? 'bg-emerald-500 text-white shadow-md'
                   : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
               }`}
             >
-              GB/T
+              Tất cả
             </button>
             <button
               onClick={() => handleFilterChange('connectorType', 'CCS2')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
                 localFilters.connectorType === 'CCS2'
                   ? 'bg-emerald-500 text-white shadow-md'
                   : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
@@ -95,7 +107,7 @@ export function FilterPanel({ filters, onFiltersChange, onClose, isDesktop }) {
             </button>
             <button
               onClick={() => handleFilterChange('connectorType', 'Type 2')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
                 localFilters.connectorType === 'Type 2'
                   ? 'bg-emerald-500 text-white shadow-md'
                   : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
@@ -106,24 +118,22 @@ export function FilterPanel({ filters, onFiltersChange, onClose, isDesktop }) {
           </div>
         </div>
 
-        {/* Power Filter - Button Grid */}
+        {/* Power Filter - Simplified */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
             Công suất
           </label>
           <div className="flex flex-wrap gap-2">
             {[
-              { value: 'all', label: 'AC (1.5kW - 22kW)' },
-              { value: '30-60', label: 'DC 30kW - 60kW' },
-              { value: '60-120', label: 'DC 60kW - 120kW' },
-              { value: '120-150', label: 'DC 120kW - 150kW' },
-              { value: '150-350', label: 'DC 150kW - 350kW' },
-              { value: '350-500', label: 'DC 350kW - 500kW' },
+              { value: 'all', label: 'Tất cả' },
+              { value: '30-60', label: 'Sạc nhanh (30-60kW)' },
+              { value: '60-150', label: 'Sạc siêu nhanh (60-150kW)' },
+              { value: '150-500', label: 'Sạc cực nhanh (>150kW)' },
             ].map((power) => (
               <button
                 key={power.value}
                 onClick={() => handleFilterChange('powerRange', power.value)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
                   localFilters.powerRange === power.value
                     ? 'bg-emerald-500 text-white shadow-md'
                     : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
@@ -135,153 +145,6 @@ export function FilterPanel({ filters, onFiltersChange, onClose, isDesktop }) {
           </div>
         </div>
 
-        {/* Price Filter - Slider */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Giá tối đa:{' '}
-            {localFilters.maxPrice?.toLocaleString('vi-VN') || '10,000'} đ/kWh
-          </label>
-          <input
-            type="range"
-            min="4000"
-            max="10000"
-            step="100"
-            value={localFilters.maxPrice || 10000}
-            onChange={(e) =>
-              handleFilterChange('maxPrice', parseInt(e.target.value))
-            }
-            className="w-full accent-emerald-500"
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>4,000đ</span>
-            <span>10,000đ</span>
-          </div>
-        </div>
-
-        {/* Provider Filter - Multi-select Button Grid */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <label className="block text-sm font-medium text-gray-700">
-              Nhà cung cấp
-            </label>
-            <button
-              onClick={() => handleFilterChange('providers', [])}
-              className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-            >
-              Xóa chọn
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {[
-              'VinFast',
-              'E Charge International',
-              'BIT Charge',
-              'EV One',
-              'EverCharge',
-            ].map((provider) => (
-              <button
-                key={provider}
-                onClick={() => handleProviderToggle(provider)}
-                className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
-                  (localFilters.providers || []).includes(provider)
-                    ? 'bg-emerald-500 text-white shadow-md'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {provider}
-              </button>
-            ))}
-          </div>
-          {(localFilters.providers || []).length > 0 && (
-            <p className="text-xs text-gray-500 mt-2">
-              Đã chọn: {(localFilters.providers || []).length} nhà cung cấp
-            </p>
-          )}
-        </div>
-
-        {/* Availability Filter */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Trạng thái cổng
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { value: 'all', label: 'Tất cả' },
-              { value: 'trong', label: '⚡ Còn trống' },
-              { value: 'dang_su_dung', label: '🔌 Đang dùng' },
-            ].map((status) => (
-              <button
-                key={status.value}
-                onClick={() => handleFilterChange('status', status.value)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  localFilters.status === status.value
-                    ? 'bg-emerald-500 text-white shadow-md'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {status.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Rating Filter */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Đánh giá tối thiểu: {localFilters.minRating || 0}⭐
-          </label>
-          <input
-            type="range"
-            min="0"
-            max="5"
-            step="0.5"
-            value={localFilters.minRating || 0}
-            onChange={(e) =>
-              handleFilterChange('minRating', parseFloat(e.target.value))
-            }
-            className="w-full accent-emerald-500"
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>0⭐</span>
-            <span>5⭐</span>
-          </div>
-        </div>
-
-        {/* Battery Level Filter - SOC Input */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Mức pin hiện tại: {localFilters.batteryLevel || 50}%
-          </label>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value={localFilters.batteryLevel || 50}
-            onChange={(e) =>
-              handleFilterChange('batteryLevel', parseInt(e.target.value))
-            }
-            className="w-full accent-emerald-500"
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>0% (Hết pin)</span>
-            <span>100% (Đầy pin)</span>
-          </div>
-          <div className="flex justify-between text-xs text-gray-400 mt-1">
-            <span className="text-red-500">🔴 Critical</span>
-            <span className="text-yellow-500">🟡 Low</span>
-            <span className="text-green-500">🟢 Normal</span>
-          </div>
-          {/* SOC Level Indicator */}
-          <div className="mt-2">
-            <SOCIndicator 
-              level={localFilters.batteryLevel || 50} 
-              showContext={true}
-              size="sm"
-            />
-          </div>
-        </div>
-
         {/* Max Distance Filter */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -290,8 +153,8 @@ export function FilterPanel({ filters, onFiltersChange, onClose, isDesktop }) {
           <input
             type="range"
             min="1"
-            max="20"
-            step="0.5"
+            max="50"
+            step="1"
             value={localFilters.maxDistance}
             onChange={(e) =>
               handleFilterChange('maxDistance', parseFloat(e.target.value))
@@ -300,7 +163,7 @@ export function FilterPanel({ filters, onFiltersChange, onClose, isDesktop }) {
           />
           <div className="flex justify-between text-xs text-gray-500 mt-1">
             <span>1 km</span>
-            <span>20 km</span>
+            <span>50 km</span>
           </div>
         </div>
       </div>
@@ -310,7 +173,7 @@ export function FilterPanel({ filters, onFiltersChange, onClose, isDesktop }) {
         <button
           type="button"
           onClick={handleReset}
-          className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors active:bg-gray-100"
+          className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
         >
           Đặt lại
         </button>
@@ -318,7 +181,7 @@ export function FilterPanel({ filters, onFiltersChange, onClose, isDesktop }) {
           <button
             type="button"
             onClick={handleApply}
-            className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-medium hover:from-emerald-600 hover:to-emerald-700 transition-all active:scale-95"
+            className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-medium hover:from-emerald-600 hover:to-emerald-700 transition-all"
           >
             Áp dụng
           </button>
@@ -332,10 +195,10 @@ export function FilterPanel({ filters, onFiltersChange, onClose, isDesktop }) {
     return content;
   }
 
-  // Mobile: Return modal overlay - SCROLLABLE
+  // Mobile: Return modal overlay
   return (
     <div className="fixed inset-0 bg-black/50 z-[9999] flex items-end lg:items-center lg:justify-center">
-      <div className="bg-white w-full h-[90vh] rounded-t-2xl lg:rounded-2xl lg:max-w-md lg:h-auto lg:max-h-[90vh] flex flex-col">
+      <div className="bg-white w-full h-[85vh] rounded-t-2xl lg:rounded-2xl lg:max-w-md lg:h-auto lg:max-h-[85vh] flex flex-col">
         {content}
       </div>
     </div>

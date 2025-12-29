@@ -52,11 +52,7 @@ export default function MapPage() {
       status: 'all',
       connectorType: 'all',
       powerRange: 'all',
-      maxPrice: 10000,
-      maxDistance: 50,
-      batteryLevel: 50,
-      minRating: 0,
-      providers: [],
+      maxDistance: 20,
     };
   });
   const [sortBy, setSortBy] = useState('distance');
@@ -67,6 +63,9 @@ export default function MapPage() {
   const [loadingStations, setLoadingStations] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(null);
+  
+  // SOC state for AI recommendations (separate from filters)
+  const [userSOC, setUserSOC] = useState(50);
 
   // Save filters to localStorage when they change
   useEffect(() => {
@@ -106,8 +105,6 @@ export default function MapPage() {
           lat: userLocation.lat,
           lng: userLocation.lng,
           radius: filters.maxDistance,
-          maxPrice: filters.maxPrice,
-          minRating: filters.minRating,
           connector:
             filters.connectorType !== 'all' ? filters.connectorType : undefined,
           status: filters.status !== 'all' ? filters.status : undefined,
@@ -135,8 +132,7 @@ export default function MapPage() {
         const response = await aiAPI.getRecommendations({
           lat: userLocation.lat,
           lng: userLocation.lng,
-          soc: filters.batteryLevel || 50,
-          maxPrice: filters.maxPrice,
+          soc: userSOC, // Use user's actual SOC from SOC widget
           radius: filters.maxDistance,
           limit: 10,
         });
@@ -158,7 +154,7 @@ export default function MapPage() {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [userLocation, filters.batteryLevel, filters.maxPrice, filters.maxDistance]);
+  }, [userLocation, filters.maxDistance, userSOC]); // Add userSOC dependency
 
   const handleSearch = (query) => {
     setSearchTerm(query);
@@ -427,8 +423,7 @@ export default function MapPage() {
       {isLoggedIn && (
         <SOCWidget
           onSOCChange={(newSOC) => {
-            // Update filters with new SOC
-            setFilters(prev => ({ ...prev, batteryLevel: newSOC }));
+            setUserSOC(newSOC);
             // This will trigger AI recommendations refresh via useEffect
           }}
         />

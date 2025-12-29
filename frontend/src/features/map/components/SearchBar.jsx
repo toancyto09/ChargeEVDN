@@ -1,43 +1,25 @@
-import { useState } from 'react';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 
 export function SearchBar({ onSearch, onFilterToggle, showFilters }) {
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    onSearch(searchTerm);
+  const handleChange = (e) => {
+    const value = e.target.value;
+    onSearch(value); // Real-time search!
   };
 
   const handleClear = () => {
-    setSearchTerm('');
     onSearch('');
   };
 
   return (
-    <form
-      onSubmit={handleSearch}
-      className="w-full bg-white rounded-lg shadow-md border border-gray-200 flex items-center gap-2 px-4 py-3"
-    >
+    <div className="w-full bg-white rounded-lg shadow-md border border-gray-200 flex items-center gap-2 px-4 py-3">
       <Search className="text-gray-400 flex-shrink-0" size={20} />
 
       <input
         type="text"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        onChange={handleChange}
         placeholder="Tìm trạm sạc theo tên, địa chỉ..."
         className="flex-1 outline-none text-gray-900 placeholder-gray-400"
       />
-
-      {searchTerm && (
-        <button
-          type="button"
-          onClick={handleClear}
-          className="text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <X size={20} />
-        </button>
-      )}
 
       <button
         type="button"
@@ -50,6 +32,6 @@ export function SearchBar({ onSearch, onFilterToggle, showFilters }) {
       >
         <SlidersHorizontal size={20} />
       </button>
-    </form>
+    </div>
   );
 }
