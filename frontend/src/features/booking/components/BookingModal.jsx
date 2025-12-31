@@ -12,12 +12,14 @@ export default function BookingModal({ isOpen, onClose, station, connector, vehi
   const [duration, setDuration] = useState(1); // hours
   const [estimatedKwh, setEstimatedKwh] = useState(0);
   const [estimatedCost, setEstimatedCost] = useState(0);
+  const [endTime, setEndTime] = useState(''); // Calculated end time
 
   useEffect(() => {
     if (isOpen) {
       // Set default date to TODAY (not tomorrow)
       const today = new Date();
-      setSelectedDate(today.toISOString().split('T')[0]);
+      const todayStr = today.toISOString().split('T')[0];
+      setSelectedDate(todayStr);
       
       // Set default time to next available slot (30 min from now)
       const now = new Date();
@@ -25,10 +27,14 @@ export default function BookingModal({ isOpen, onClose, station, connector, vehi
       nextSlot.setMinutes(Math.ceil(now.getMinutes() / 30) * 30 + 30); // Next 30-min slot + 30 min buffer
       const hours = nextSlot.getHours().toString().padStart(2, '0');
       const minutes = nextSlot.getMinutes().toString().padStart(2, '0');
-      setSelectedTime(`${hours}:${minutes}`);
+      const timeStr = `${hours}:${minutes}`;
+      setSelectedTime(timeStr);
       
       // Calculate initial estimates
       calculateEstimates(1);
+      
+      // Calculate initial end time
+      updateEndTime(todayStr, timeStr, 1);
     }
   }, [isOpen]);
 
@@ -53,6 +59,30 @@ export default function BookingModal({ isOpen, onClose, station, connector, vehi
     const hours = parseFloat(e.target.value);
     setDuration(hours);
     calculateEstimates(hours);
+    updateEndTime(selectedDate, selectedTime, hours);
+  };
+
+  const updateEndTime = (date, time, durationHours) => {
+    if (!date || !time) return;
+    
+    try {
+      const [year, month, day] = date.split('-').map(Number);
+      const [hours, minutes] = time.split(':').map(Number);
+      const startDateTime = new Date(year, month - 1, day, hours, minutes);
+      const endDateTime = new Date(startDateTime);
+      endDateTime.setMinutes(endDateTime.getMinutes() + (durationHours * 60));
+      
+      const endTimeStr = endDateTime.toLocaleString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        day: '2-digit',
+        month: '2-digit',
+        hour12: false
+      });
+      setEndTime(endTimeStr);
+    } catch (e) {
+      setEndTime('');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -320,7 +350,7 @@ export default function BookingModal({ isOpen, onClose, station, connector, vehi
             </div>
           )}
 
-          {/* Date Selection */}
+          {/* Date Selection - Smart 6h window */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Calendar className="w-4 h-4 inline mr-2" />
@@ -329,16 +359,22 @@ export default function BookingModal({ isOpen, onClose, station, connector, vehi
             <input
               type="date"
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                updateEndTime(e.target.value, selectedTime, duration);
+              }}
               min={new Date().toISOString().split('T')[0]}
               max={(() => {
-                const today = new Date();
-                // Allow booking for today only (6h window is enough)
-                return today.toISOString().split('T')[0];
+                const maxTime = new Date();
+                maxTime.setHours(maxTime.getHours() + 6);
+                return maxTime.toISOString().split('T')[0];
               })()}
               required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+            <p className="mt-1 text-xs text-gray-500">
+              Có thể đặt trong vòng 6 giờ tới (kể cả qua ngày)
+            </p>
           </div>
 
           {/* Time Selection */}
@@ -350,34 +386,52 @@ export default function BookingModal({ isOpen, onClose, station, connector, vehi
             <input
               type="time"
               value={selectedTime}
-              onChange={(e) => setSelectedTime(e.target.value)}
+              onChange={(e) => {
+                setSelectedTime(e.target.value);
+                updateEndTime(selectedDate, e.target.value, duration);
+              }}
               required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <p className="mt-1 text-xs text-gray-500">
-              Chỉ có thể đặt chỗ trong vòng 6 giờ tới
+              Tối thiểu 15 phút từ bây giờ
             </p>
           </div>
 
-          {/* Duration Selection */}
+          {/* Duration Selection - Slider */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <Zap className="w-4 h-4 inline mr-2" />
-              Thời gian sạc (giờ)
+              Thời gian sạc: <span className="text-blue-600 font-semibold">{duration}h</span>
+              <span className="text-gray-500 text-sm ml-2">({Math.round(duration * 60)} phút)</span>
             </label>
-            <select
+            <input
+              type="range"
+              min="0.5"
+              max="6"
+              step="0.5"
               value={duration}
               onChange={handleDurationChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="0.5">30 phút</option>
-              <option value="1">1 giờ</option>
-              <option value="1.5">1.5 giờ</option>
-              <option value="2">2 giờ</option>
-              <option value="3">3 giờ</option>
-              <option value="4">4 giờ</option>
-            </select>
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>30 phút</span>
+              <span>6 giờ</span>
+            </div>
           </div>
+
+          {/* End Time Display */}
+          {endTime && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Kết thúc dự kiến:</p>
+                  <p className="text-lg font-semibold text-blue-600">{endTime}</p>
+                </div>
+                <Clock className="w-8 h-8 text-blue-400" />
+              </div>
+            </div>
+          )}
 
           {/* Estimates */}
           <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 space-y-3 border-2 border-emerald-200">
