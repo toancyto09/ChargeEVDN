@@ -101,8 +101,7 @@ export async function markExpiredBookings() {
     UPDATE dat_cho
     SET 
       trang_thai = 'huy',
-      nguon_huy = 'he_thong',
-      ghi_chu = COALESCE(ghi_chu, '') || '\n[Auto-cancelled: No-show - ' || NOW()::TEXT || ']'
+      nguon_huy = 'he_thong'
     WHERE trang_thai = 'da_xac_nhan'
       AND het_han < NOW()
       AND id_dat_cho NOT IN (

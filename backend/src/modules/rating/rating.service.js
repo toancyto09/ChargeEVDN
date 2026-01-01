@@ -11,6 +11,8 @@ class RatingService {
   async createRating(userId, ratingData) {
     const { id_dat_cho, id_tram, diem_so, nhan_xet } = ratingData;
 
+    console.log('🔍 Creating rating:', { userId, id_dat_cho, id_tram, diem_so });
+
     // Validation 1: Check booking exists and belongs to user
     const bookingCheck = await pool.query(
       `SELECT id_dat_cho, trang_thai 
@@ -19,7 +21,13 @@ class RatingService {
       [id_dat_cho, userId]
     );
 
+    console.log('📊 Booking check result:', {
+      found: bookingCheck.rows.length > 0,
+      booking: bookingCheck.rows[0]
+    });
+
     if (bookingCheck.rows.length === 0) {
+      console.error('❌ Booking not found or wrong user:', { id_dat_cho, userId });
       throw new Error('Không tìm thấy booking hoặc bạn không có quyền đánh giá booking này');
     }
 
@@ -27,6 +35,7 @@ class RatingService {
 
     // Validation 2: Only allow rating for completed bookings
     if (booking.trang_thai !== 'hoan_thanh') {
+      console.error('❌ Booking not completed:', { status: booking.trang_thai });
       throw new Error('Chỉ có thể đánh giá sau khi hoàn thành sạc xe');
     }
 

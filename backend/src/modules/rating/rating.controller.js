@@ -11,7 +11,17 @@ class RatingController {
    */
   async createRating(req, res) {
     try {
-      const userId = req.user.id;
+      // Support multiple token formats
+      const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
+      
+      if (!userId) {
+        console.error('❌ No userId in token:', req.user);
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized - Invalid token'
+        });
+      }
+
       const ratingData = req.body;
 
       // Validate required fields
@@ -122,7 +132,7 @@ class RatingController {
    */
   async getMyRatings(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
       const limit = parseInt(req.query.limit) || 20;
       const offset = parseInt(req.query.offset) || 0;
 
@@ -151,7 +161,7 @@ class RatingController {
    */
   async canRateBooking(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
       const bookingId = req.params.bookingId;
 
       const result = await ratingService.canRateBooking(userId, bookingId);
