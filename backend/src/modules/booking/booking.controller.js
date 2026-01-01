@@ -44,36 +44,38 @@ class BookingController {
         });
       }
 
-      // Check connector availability
-      const isAvailable = await bookingService.checkConnectorAvailability(
-        bookingData.id_cong_sac,
-        startTime,
-        endTime
-      );
-
-      if (!isAvailable) {
-        return res.status(409).json({
-          success: false,
-          message: 'Connector is not available for the selected time'
-        });
-      }
-
+      // ✅ Create booking (INSTANT APPROVED)
+      // All validation and race-condition handling is done inside service
       const booking = await bookingService.createBooking(userId, bookingData);
 
       res.status(201).json({
         success: true,
-        message: 'Booking created successfully',
-        data: booking
+        message: 'Booking created and confirmed successfully (Instant Booking)',
+        data: {
+          ...booking,
+          status_message: 'Đặt chỗ đã được xác nhận tự động. Bạn có thể check-in ngay khi đến trạm!'
+        }
       });
     } catch (error) {
       console.error('❌ Error creating booking:', error);
       
-      // Handle business logic errors (400)
+      // 🔴 Handle 409 Conflict (Time slot not available)
+      if (error.statusCode === 409) {
+        return res.status(409).json({
+          success: false,
+          message: error.message,
+          error_code: 'SLOT_NOT_AVAILABLE'
+        });
+      }
+
+      // ⚠️ Handle business logic errors (400)
       const businessErrors = [
         'Bạn đã có 3 đặt chỗ',
         'lịch đặt chỗ trùng giờ',
         'không tương thích',
-        'Không tìm thấy thông tin'
+        'Không tìm thấy',
+        'Tài khoản của bạn đã bị khóa',
+        'chưa thanh toán quá 7 ngày'
       ];
 
       if (businessErrors.some(msg => error.message.includes(msg))) {
@@ -83,7 +85,7 @@ class BookingController {
         });
       }
 
-      // System errors (500)
+      // ❌ System errors (500)
       res.status(500).json({
         success: false,
         message: 'Có lỗi xảy ra khi tạo đặt chỗ. Vui lòng thử lại sau.',

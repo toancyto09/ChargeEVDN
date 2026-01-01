@@ -115,7 +115,18 @@ class SessionController {
   async getSessionById(req, res) {
     try {
       const { id } = req.params;
-      const userId = parseInt(req.user.id); // Use .id not .id_nguoi_dung
+      // Support multiple token formats: id_nguoi_dung, userId, or id
+      const userId = req.user.id_nguoi_dung || req.user.userId || req.user.id;
+      
+      if (!userId) {
+        console.error('❌ User ID not found in token:', req.user);
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized - Invalid token'
+        });
+      }
+
+      console.log(`🔍 getSessionById: sessionId=${id}, userId=${userId}`);
 
       const session = await sessionService.getSessionById(parseInt(id));
 
@@ -127,12 +138,20 @@ class SessionController {
       }
 
       // Check ownership - compare as integers
-      if (parseInt(session.id_nguoi_dung) !== userId) {
+      const sessionUserId = parseInt(session.id_nguoi_dung);
+      const requestUserId = parseInt(userId);
+      
+      console.log(`🔐 Ownership check: session.user=${sessionUserId} vs request.user=${requestUserId}`);
+      
+      if (sessionUserId !== requestUserId) {
+        console.error(`❌ Authorization failed: session belongs to user ${sessionUserId}, but request from user ${requestUserId}`);
         return res.status(403).json({
           success: false,
           message: 'Bạn không có quyền xem session này'
         });
       }
+
+      console.log(`✅ Authorization passed for session ${id}`);
 
       res.status(200).json({
         success: true,

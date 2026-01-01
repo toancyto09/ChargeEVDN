@@ -385,20 +385,27 @@ export async function getUnpaidSessions(userId) {
 }
 
 /**
- * Check-in via QR code (Station-level QR)
- * Automatically find user's booking for this station and start session
+ * Check-in via QR code (Smart Check-in)
+ * Handles both:
+ * 1. Users with booking - flexible time window
+ * 2. Walk-in users - check for conflicts and allow if safe
+ * 
  * @param {number} userId - User ID
- * @param {number} stationId - Station ID from QR code
+ * @param {number} connectorId - Connector ID from QR code
  * @returns {object} Session info with connector details
  */
-export async function checkInWithQR(userId, stationId) {
+export async function checkInWithQR(userId, connectorId) {
   const client = await pool.connect();
   
   try {
     await client.query('BEGIN');
 
-    // Find user's valid booking for this station
-    const bookingQuery = `
+    const now = new Date();
+
+    // ==========================================
+    // STEP 1: Check if user has a booking for this connector
+    // ==========================================
+    const userBookingQuery = `
       SELECT 
         dc.id_dat_cho,
         dc.id_nguoi_dung,
@@ -418,90 +425,202 @@ export async function checkInWithQR(userId, stationId) {
       JOIN tram_sac ts ON ts.id_tram = cs.id_tram
       JOIN loai_cong_sac lcs ON lcs.id_loai_cong = cs.id_loai_cong
       WHERE dc.id_nguoi_dung = $1
-        AND ts.id_tram = $2
-        AND dc.trang_thai IN ('cho_xac_nhan', 'da_xac_nhan')
-        AND NOW() >= (dc.thoi_gian_bat_dau - INTERVAL '15 minutes')
-        AND NOW() <= dc.thoi_gian_ket_thuc
+        AND dc.id_cong_sac = $2
+        AND dc.trang_thai = 'da_xac_nhan'
+        AND $3 >= (dc.thoi_gian_bat_dau - INTERVAL '15 minutes')
+        AND $3 <= (dc.thoi_gian_bat_dau + INTERVAL '15 minutes')  -- ✅ FIX: Chỉ 15p sau giờ BẮT ĐẦU, không phải giờ kết thúc
       ORDER BY dc.ngay_tao DESC
       LIMIT 1
     `;
     
-    const bookingResult = await client.query(bookingQuery, [userId, stationId]);
+    const userBookingResult = await client.query(userBookingQuery, [userId, connectorId, now]);
     
-    if (bookingResult.rows.length === 0) {
-      // No valid booking found - Check for other scenarios
-      const anyBookingQuery = `
+    let booking = null;
+    let isWalkIn = false;
+    let maxDuration = null;
+
+    if (userBookingResult.rows.length > 0) {
+      // ==========================================
+      // CASE 1: USER HAS BOOKING
+      // ==========================================
+      booking = userBookingResult.rows[0];
+      console.log(`✅ User ${userId} has booking #${booking.id_dat_cho}`);
+
+      // Check if session already exists
+      const existingSessionQuery = `
+        SELECT id_phien_sac, trang_thai 
+        FROM phien_sac 
+        WHERE id_dat_cho = $1
+      `;
+      const existingSession = await client.query(existingSessionQuery, [booking.id_dat_cho]);
+
+      if (existingSession.rows.length > 0) {
+        const session = existingSession.rows[0];
+        if (session.trang_thai === 'dang_sac') {
+          throw new Error('Phiên sạc đã được bắt đầu rồi. Vui lòng kiểm tra trong "Phiên sạc"');
+        }
+      }
+
+    } else {
+      // ==========================================
+      // CASE 2: WALK-IN USER (No booking)
+      // ==========================================
+      console.log(`⚠️  User ${userId} is walk-in (no booking)`);
+      isWalkIn = true;
+
+      // Check for upcoming bookings on this connector
+      const upcomingBookingsQuery = `
         SELECT 
           dc.id_dat_cho,
           dc.thoi_gian_bat_dau,
-          dc.trang_thai,
-          ts.ten_tram,
-          ts.id_tram
+          dc.thoi_gian_ket_thuc,
+          nd.ho_ten
         FROM dat_cho dc
-        JOIN cong_sac cs ON cs.id_cong_sac = dc.id_cong_sac
-        JOIN tram_sac ts ON ts.id_tram = cs.id_tram
-        WHERE dc.id_nguoi_dung = $1
-          AND dc.trang_thai IN ('cho_xac_nhan', 'da_xac_nhan')
+        JOIN nguoi_dung nd ON nd.id_nguoi_dung = dc.id_nguoi_dung
+        WHERE dc.id_cong_sac = $1
+          AND dc.trang_thai = 'da_xac_nhan'
+          AND dc.thoi_gian_bat_dau > $2
         ORDER BY dc.thoi_gian_bat_dau ASC
         LIMIT 1
       `;
-      
-      const anyBooking = await client.query(anyBookingQuery, [userId]);
-      
-      if (anyBooking.rows.length > 0) {
-        const booking = anyBooking.rows[0];
-        const startTime = new Date(booking.thoi_gian_bat_dau);
-        const now = new Date();
-        
-        // Check if at wrong station
-        if (booking.id_tram !== stationId) {
-          throw new Error(`QR code này không đúng với đặt chỗ của bạn. Bạn đã đặt chỗ tại "${booking.ten_tram}"`);
+
+      const upcomingBookings = await client.query(upcomingBookingsQuery, [connectorId, now]);
+
+      if (upcomingBookings.rows.length > 0) {
+        const nextBooking = upcomingBookings.rows[0];
+        const nextBookingStart = new Date(nextBooking.thoi_gian_bat_dau);
+        const minutesUntilNext = Math.floor((nextBookingStart - now) / 60000);
+
+        // RULE: If next booking is within 15 minutes, REJECT
+        if (minutesUntilNext <= 15) {
+          throw new Error(
+            `Trụ sắp có người đặt chỗ trong ${minutesUntilNext} phút. ` +
+            `Vui lòng chọn trụ khác hoặc đợi sau ${new Date(nextBooking.thoi_gian_ket_thuc).toLocaleTimeString('vi-VN', {
+              hour: '2-digit',
+              minute: '2-digit'
+            })}`
+          );
         }
+
+        // RULE: If next booking is far (> 15 minutes), ALLOW but with time limit
+        // Give buffer of 10 minutes before next booking
+        const bufferMinutes = 10;
+        maxDuration = minutesUntilNext - bufferMinutes;
         
-        // Check if too early
-        if (now < new Date(startTime.getTime() - 15 * 60 * 1000)) {
-          const minutesUntil = Math.floor((startTime - now) / 60000);
-          throw new Error(`Chưa đến giờ check-in. Vui lòng đợi thêm ${minutesUntil} phút`);
-        }
-        
-        // Check if expired
-        throw new Error('Đặt chỗ của bạn đã hết hạn. Vui lòng đặt lại');
+        console.log(
+          `✅ Walk-in allowed. Next booking in ${minutesUntilNext} min. ` +
+          `Max duration: ${maxDuration} min`
+        );
+      } else {
+        // No upcoming bookings - allow walk-in with default max duration
+        maxDuration = 120; // 2 hours default
+        console.log(`✅ Walk-in allowed. No upcoming bookings. Max duration: ${maxDuration} min`);
       }
+
+      // Get connector info for walk-in
+      const connectorInfoQuery = `
+        SELECT 
+          cs.id_cong_sac,
+          cs.ma_cong_tram,
+          cs.cong_suat_kwh,
+          cs.trang_thai,
+          ts.id_tram,
+          ts.ten_tram,
+          ts.dia_chi,
+          lcs.ma_cong as loai_cong
+        FROM cong_sac cs
+        JOIN tram_sac ts ON ts.id_tram = cs.id_tram
+        JOIN loai_cong_sac lcs ON lcs.id_loai_cong = cs.id_loai_cong
+        WHERE cs.id_cong_sac = $1
+      `;
+
+      const connectorInfo = await client.query(connectorInfoQuery, [connectorId]);
       
-      throw new Error('Bạn chưa có đặt chỗ tại trạm này. Vui lòng đặt chỗ trước khi check-in');
-    }
-
-    const booking = bookingResult.rows[0];
-
-    // Check if session already exists
-    const existingSessionQuery = `
-      SELECT id_phien_sac, trang_thai 
-      FROM phien_sac 
-      WHERE id_dat_cho = $1
-    `;
-    const existingSession = await client.query(existingSessionQuery, [booking.id_dat_cho]);
-
-    if (existingSession.rows.length > 0) {
-      const session = existingSession.rows[0];
-      if (session.trang_thai === 'dang_sac') {
-        throw new Error('Phiên sạc đã được bắt đầu rồi. Vui lòng kiểm tra trong "Phiên sạc"');
+      if (connectorInfo.rows.length === 0) {
+        throw new Error('Không tìm thấy thông tin cổng sạc');
       }
+
+      const connector = connectorInfo.rows[0];
+
+      // Check if connector is already in use
+      if (connector.trang_thai === 'dang_su_dung') {
+        throw new Error('Cổng sạc đang được sử dụng. Vui lòng thử cổng khác');
+      }
+
+      if (connector.trang_thai === 'bao_tri') {
+        throw new Error('Cổng sạc đang bảo trì. Vui lòng thử cổng khác');
+      }
+
+      // Create a temporary booking for walk-in
+      const walkInEndTime = new Date(now.getTime() + maxDuration * 60 * 1000);
+      
+      const createWalkInBookingQuery = `
+        INSERT INTO dat_cho (
+          id_nguoi_dung,
+          id_phuong_tien,
+          id_cong_sac,
+          thoi_gian_bat_dau,
+          thoi_gian_ket_thuc,
+          het_han,
+          trang_thai,
+          uoc_tinh_kwh,
+          uoc_tinh_chi_phi,
+          ma_xac_nhan,
+          ghi_chu
+        ) VALUES (
+          $1,
+          (SELECT id_phuong_tien FROM phuong_tien WHERE id_nguoi_dung = $1 LIMIT 1),
+          $2,
+          $3,
+          $4,
+          $3,
+          'da_xac_nhan',
+          0,
+          0,
+          'WALKIN-' || UPPER(SUBSTRING(MD5(RANDOM()::TEXT) FROM 1 FOR 6)),
+          'Walk-in check-in (tự động tạo)'
+        )
+        RETURNING *
+      `;
+
+      const walkInBooking = await client.query(createWalkInBookingQuery, [
+        userId,
+        connectorId,
+        now,
+        walkInEndTime
+      ]);
+
+      booking = {
+        ...walkInBooking.rows[0],
+        ten_tram: connector.ten_tram,
+        dia_chi: connector.dia_chi,
+        ma_cong_tram: connector.ma_cong_tram,
+        loai_cong: connector.loai_cong,
+        cong_suat_kwh: connector.cong_suat_kwh
+      };
+
+      console.log(`✅ Walk-in booking created: #${booking.id_dat_cho}`);
     }
 
-    // Auto-confirm booking if still waiting
-    if (booking.trang_thai === 'cho_xac_nhan') {
-      await client.query(
-        `UPDATE dat_cho SET trang_thai = 'da_xac_nhan' WHERE id_dat_cho = $1`,
-        [booking.id_dat_cho]
-      );
-    }
+    // ==========================================
+    // STEP 2: Lock connector (for both cases)
+    // ==========================================
+    await client.query(
+      `UPDATE cong_sac SET trang_thai = 'dang_su_dung' WHERE id_cong_sac = $1`,
+      [connectorId]
+    );
 
-    // Start charging session
+    // ==========================================
+    // STEP 3: Start charging session
+    // ==========================================
     const session = await startSession(booking.id_dat_cho);
     
     await client.query('COMMIT');
 
-    console.log(`✅ QR Check-in successful: User ${userId} at Station ${stationId}, Session #${session.id_phien_sac}`);
+    console.log(
+      `✅ Smart check-in successful: User ${userId} at Connector ${connectorId}, ` +
+      `Session #${session.id_phien_sac} (${isWalkIn ? 'WALK-IN' : 'BOOKING'})`
+    );
 
     return {
       session_id: session.id_phien_sac,
@@ -512,7 +631,10 @@ export async function checkInWithQR(userId, stationId) {
       connector_type: booking.loai_cong,
       power_kw: booking.cong_suat_kwh,
       confirmation_code: booking.ma_xac_nhan,
-      start_time: session.thoi_gian_bat_dau
+      start_time: session.thoi_gian_bat_dau,
+      is_walk_in: isWalkIn,
+      max_duration_minutes: maxDuration,
+      warning: maxDuration ? `Vui lòng hoàn thành trong ${maxDuration} phút để tránh lấn giờ người khác` : null
     };
 
   } catch (error) {

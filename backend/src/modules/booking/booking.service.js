@@ -1,5 +1,6 @@
 import { pool } from '../../config/db.js';
 import crypto from 'crypto';
+import { checkBookingEligibility } from './penalty.service.js';
 
 /**
  * Booking Service
@@ -8,7 +9,11 @@ import crypto from 'crypto';
 
 class BookingService {
   /**
-   * Create a new booking
+   * Create a new booking - INSTANT BOOKING (Auto-approved)
+   * @param {number} userId - User ID
+   * @param {object} bookingData - Booking details
+   * @returns {Promise<object>} Created booking with status 'da_xac_nhan'
+   * @throws {Error} 409 if slot is not available (race-condition safe)
    */
   async createBooking(userId, bookingData) {
     const { 
@@ -19,123 +24,284 @@ class BookingService {
       uoc_tinh_kwh 
     } = bookingData;
 
-    // ✅ ANTI-SPAM #1: Check concurrent booking limit
-    const activeCountQuery = `
-      SELECT COUNT(*) as count
-      FROM dat_cho
-      WHERE id_nguoi_dung = $1
-        AND trang_thai IN ('cho_xac_nhan', 'da_xac_nhan')
-    `;
+    // ==========================================
+    // 🎯 PENALTY CHECK (No schema changes needed!)
+    // ==========================================
+    const eligibility = await checkBookingEligibility(userId);
+    if (!eligibility.allowed) {
+      throw new Error(eligibility.message);
+    }
     
-    const activeCount = await pool.query(activeCountQuery, [userId]);
-    const count = parseInt(activeCount.rows[0].count);
-
-    if (count >= 3) {
-      throw new Error(
-        'Bạn đã có 3 đặt chỗ đang chờ. ' +
-        'Vui lòng hoàn thành hoặc hủy booking cũ trước khi đặt thêm.'
-      );
+    // Log warning if user has penalty
+    if (eligibility.warning) {
+      console.warn(`⚠️ User ${userId}: ${eligibility.warning}`);
     }
 
-    // ✅ ANTI-SPAM #2: Check overlapping time with user's other bookings
-    const overlapQuery = `
-      SELECT dc.id_dat_cho, ts.ten_tram, dc.thoi_gian_bat_dau, dc.thoi_gian_ket_thuc
-      FROM dat_cho dc
-      JOIN cong_sac cs ON cs.id_cong_sac = dc.id_cong_sac
-      JOIN tram_sac ts ON ts.id_tram = cs.id_tram
-      WHERE dc.id_nguoi_dung = $1
-        AND dc.trang_thai IN ('cho_xac_nhan', 'da_xac_nhan')
-        AND (
-          (dc.thoi_gian_bat_dau <= $2 AND dc.thoi_gian_ket_thuc >= $2)
-          OR (dc.thoi_gian_bat_dau <= $3 AND dc.thoi_gian_ket_thuc >= $3)
-          OR (dc.thoi_gian_bat_dau >= $2 AND dc.thoi_gian_ket_thuc <= $3)
-        )
-      LIMIT 1
-    `;
+    const client = await pool.connect();
 
-    const overlapResult = await pool.query(overlapQuery, [
-      userId,
-      thoi_gian_bat_dau,
-      thoi_gian_ket_thuc
-    ]);
+    try {
+      // 🔒 BEGIN SERIALIZABLE TRANSACTION (Highest isolation level for race condition)
+      await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');
 
-    if (overlapResult.rows.length > 0) {
-      const existing = overlapResult.rows[0];
-      const existingTime = new Date(existing.thoi_gian_bat_dau)
-        .toLocaleString('vi-VN', { 
-          hour: '2-digit', 
+      // ==========================================
+      // ✅ VALIDATION #1: Check User Status
+      // ==========================================
+      const userCheckQuery = `
+        SELECT 
+          id_nguoi_dung,
+          trang_thai,
+          ho_ten
+        FROM nguoi_dung
+        WHERE id_nguoi_dung = $1
+        FOR UPDATE  -- Lock user row to prevent concurrent checks
+      `;
+      
+      const userResult = await client.query(userCheckQuery, [userId]);
+      
+      if (userResult.rows.length === 0) {
+        throw new Error('Không tìm thấy thông tin người dùng');
+      }
+
+      const user = userResult.rows[0];
+
+      // Check if user is blocked
+      if (user.trang_thai === 'khoa') {
+        throw new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.');
+      }
+
+      // Check for unpaid sessions (debt check)
+      const debtCheckQuery = `
+        SELECT COUNT(*) as unpaid_count
+        FROM phien_sac ps
+        LEFT JOIN thanh_toan tt ON tt.id_phien_sac = ps.id_phien_sac
+        JOIN dat_cho dc ON dc.id_dat_cho = ps.id_dat_cho
+        WHERE dc.id_nguoi_dung = $1
+          AND ps.trang_thai = 'hoan_thanh'
+          AND (tt.id_thanh_toan IS NULL OR tt.trang_thai != 'success')
+          AND ps.thoi_gian_ket_thuc < NOW() - INTERVAL '7 days'  -- Overdue > 7 days
+      `;
+
+      const debtResult = await client.query(debtCheckQuery, [userId]);
+      const unpaidCount = parseInt(debtResult.rows[0].unpaid_count);
+
+      if (unpaidCount > 0) {
+        throw new Error(
+          `Bạn có ${unpaidCount} phiên sạc chưa thanh toán quá 7 ngày. ` +
+          'Vui lòng thanh toán trước khi đặt chỗ mới.'
+        );
+      }
+
+      // ==========================================
+      // ✅ VALIDATION #2: Check Concurrent Bookings Limit
+      // ==========================================
+      // Lock active bookings first, then count in memory
+      const activeBookingsQuery = `
+        SELECT id_dat_cho
+        FROM dat_cho
+        WHERE id_nguoi_dung = $1
+          AND trang_thai IN ('da_xac_nhan', 'dang_su_dung')
+        FOR UPDATE
+      `;
+      
+      const activeBookings = await client.query(activeBookingsQuery, [userId]);
+      const count = activeBookings.rows.length;
+
+      if (count >= 3) {
+        throw new Error(
+          'Bạn đã có 3 đặt chỗ đang hoạt động. ' +
+          'Vui lòng hoàn thành hoặc hủy booking cũ trước khi đặt thêm.'
+        );
+      }
+
+      // ==========================================
+      // ✅ VALIDATION #3: Check User's Overlapping Bookings
+      // ==========================================
+      const userOverlapQuery = `
+        SELECT dc.id_dat_cho, ts.ten_tram, dc.thoi_gian_bat_dau, dc.thoi_gian_ket_thuc
+        FROM dat_cho dc
+        JOIN cong_sac cs ON cs.id_cong_sac = dc.id_cong_sac
+        JOIN tram_sac ts ON ts.id_tram = cs.id_tram
+        WHERE dc.id_nguoi_dung = $1
+          AND dc.trang_thai IN ('da_xac_nhan', 'dang_su_dung')  -- Only active bookings
+          AND (
+            (dc.thoi_gian_bat_dau < $3 AND dc.thoi_gian_ket_thuc > $2)
+          )
+        LIMIT 1
+        FOR UPDATE  -- Lock to prevent race condition
+      `;
+
+      const userOverlapResult = await client.query(userOverlapQuery, [
+        userId,
+        thoi_gian_bat_dau,
+        thoi_gian_ket_thuc
+      ]);
+
+      if (userOverlapResult.rows.length > 0) {
+        const existing = userOverlapResult.rows[0];
+        const existingTime = new Date(existing.thoi_gian_bat_dau)
+          .toLocaleString('vi-VN', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            day: '2-digit',
+            month: '2-digit'
+          });
+        
+        throw new Error(
+          `Bạn đã có lịch đặt chỗ trùng giờ tại "${existing.ten_tram}" ` +
+          `vào lúc ${existingTime}. Vui lòng chọn thời gian khác.`
+        );
+      }
+
+      // ==========================================
+      // 🔒 CRITICAL: Check Connector Availability (WITH LOCK)
+      // This is the MOST IMPORTANT check to prevent double-booking
+      // ==========================================
+      // Lock conflicting rows first, then count in memory
+      const connectorLockQuery = `
+        SELECT 
+          id_dat_cho,
+          thoi_gian_bat_dau,
+          thoi_gian_ket_thuc
+        FROM dat_cho
+        WHERE id_cong_sac = $1
+          AND trang_thai IN ('da_xac_nhan', 'dang_su_dung')
+          AND (
+            (thoi_gian_bat_dau < $3 AND thoi_gian_ket_thuc > $2)
+          )
+        FOR UPDATE
+      `;
+
+      const connectorCheckResult = await client.query(connectorLockQuery, [
+        id_cong_sac,
+        thoi_gian_bat_dau,
+        thoi_gian_ket_thuc
+      ]);
+
+      const conflicts = connectorCheckResult.rows;
+
+      if (conflicts.length > 0) {
+        // 409 Conflict - Slot is not available
+        const firstConflict = conflicts[0];
+        const formattedTime = new Date(firstConflict.thoi_gian_bat_dau).toLocaleString('vi-VN', {
+          hour: '2-digit',
           minute: '2-digit',
           day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
+          month: '2-digit'
         });
+
+        const error = new Error(
+          `Khung giờ này đã kín. Có đặt chỗ khác vào ${formattedTime}. ` +
+          'Vui lòng chọn thời gian khác.'
+        );
+        error.statusCode = 409;
+        throw error;
+      }
+
+      // ==========================================
+      // ✅ Get Pricing Information
+      // ==========================================
+      const pricingQuery = `
+        SELECT 
+          cs.id_cong_sac,
+          cs.ma_cong_tram,
+          cs.cong_suat_kwh,
+          ts.ten_tram,
+          hsg.gia_kwh,
+          hsg.phi_cho_phut
+        FROM cong_sac cs
+        JOIN tram_sac ts ON ts.id_tram = cs.id_tram
+        LEFT JOIN lich_su_gia_tram hsg ON hsg.id_tram = ts.id_tram
+          AND hsg.trang_thai = 'active'
+          AND NOW() BETWEEN hsg.hieu_luc_tu 
+            AND COALESCE(hsg.hieu_luc_den, NOW() + INTERVAL '100 years')
+        WHERE cs.id_cong_sac = $1
+        LIMIT 1
+      `;
       
-      throw new Error(
-        `Bạn đã có lịch đặt chỗ trùng giờ tại "${existing.ten_tram}" ` +
-        `vào lúc ${existingTime}. Vui lòng chọn thời gian khác.`
-      );
-    }
+      const pricingResult = await client.query(pricingQuery, [id_cong_sac]);
+      
+      if (pricingResult.rows.length === 0) {
+        throw new Error('Không tìm thấy thông tin cổng sạc hoặc giá');
+      }
 
-    // Generate confirmation code
-    const ma_xac_nhan = this.generateConfirmationCode();
+      const connector = pricingResult.rows[0];
+      const gia_kwh = parseFloat(connector.gia_kwh) || 0;
+      const uoc_tinh_chi_phi = uoc_tinh_kwh * gia_kwh;
 
-    // Calculate expiry (15 minutes after start time)
-    const het_han = new Date(thoi_gian_bat_dau);
-    het_han.setMinutes(het_han.getMinutes() + 15);
+      // ==========================================
+      // ✅ Generate Confirmation Code (QR Code)
+      // ==========================================
+      const ma_xac_nhan = this.generateConfirmationCode();
 
-    // Get station pricing
-    const pricingQuery = `
-      SELECT hsg.gia_kwh, hsg.phi_cho_phut
-      FROM cong_sac cs
-      JOIN tram_sac ts ON ts.id_tram = cs.id_tram
-      LEFT JOIN lich_su_gia_tram hsg ON hsg.id_tram = ts.id_tram
-        AND hsg.trang_thai = 'active'
-        AND NOW() BETWEEN hsg.hieu_luc_tu AND COALESCE(hsg.hieu_luc_den, NOW() + INTERVAL '100 years')
-      WHERE cs.id_cong_sac = $1
-      LIMIT 1
-    `;
-    const pricingResult = await pool.query(pricingQuery, [id_cong_sac]);
-    
-    const gia_kwh = pricingResult.rows[0]?.gia_kwh || 0;
-    const uoc_tinh_chi_phi = uoc_tinh_kwh * gia_kwh;
+      // Calculate expiry (15 minutes after start time)
+      const het_han = new Date(thoi_gian_bat_dau);
+      het_han.setMinutes(het_han.getMinutes() + 15);
 
-    // Insert booking
-    const insertQuery = `
-      INSERT INTO dat_cho (
-        id_nguoi_dung,
+      // ==========================================
+      // 🎉 INSERT BOOKING with status 'da_xac_nhan' (INSTANT APPROVED)
+      // ==========================================
+      const insertQuery = `
+        INSERT INTO dat_cho (
+          id_nguoi_dung,
+          id_phuong_tien,
+          id_cong_sac,
+          thoi_gian_bat_dau,
+          thoi_gian_ket_thuc,
+          het_han,
+          trang_thai,
+          uoc_tinh_kwh,
+          uoc_tinh_chi_phi,
+          ma_xac_nhan
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING *
+      `;
+
+      const insertResult = await client.query(insertQuery, [
+        userId,
         id_phuong_tien,
         id_cong_sac,
         thoi_gian_bat_dau,
         thoi_gian_ket_thuc,
         het_han,
-        trang_thai,
+        'da_xac_nhan',  // ✅ INSTANT APPROVED (not 'cho_xac_nhan')
         uoc_tinh_kwh,
         uoc_tinh_chi_phi,
         ma_xac_nhan
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING *
-    `;
+      ]);
 
-    const result = await pool.query(insertQuery, [
-      userId,
-      id_phuong_tien,
-      id_cong_sac,
-      thoi_gian_bat_dau,
-      thoi_gian_ket_thuc,
-      het_han,
-      'cho_xac_nhan',
-      uoc_tinh_kwh,
-      uoc_tinh_chi_phi,
-      ma_xac_nhan
-    ]);
+      const booking = insertResult.rows[0];
 
-    // Update connector status
-    await pool.query(
-      `UPDATE cong_sac SET trang_thai = 'dang_su_dung' WHERE id_cong_sac = $1`,
-      [id_cong_sac]
-    );
+      // ==========================================
+      // ✅ KHÔNG LOCK CONNECTOR (Soft Reservation)
+      // ==========================================
+      // Connector giữ nguyên trạng thái hiện tại
+      // Chỉ lock khi user thực sự check-in (start session)
+      // Điều này cho phép nhiều bookings trên cùng connector (khác giờ)
 
-    return result.rows[0];
+      // ==========================================
+      // 🎉 COMMIT TRANSACTION
+      // ==========================================
+      await client.query('COMMIT');
+
+      console.log(
+        `✅ INSTANT BOOKING created: #${booking.id_dat_cho} ` +
+        `for user ${user.ho_ten} at ${connector.ten_tram} (${connector.ma_cong_tram}) ` +
+        `[SOFT RESERVATION - Connector not locked]`
+      );
+
+      return booking;
+
+    } catch (error) {
+      // ❌ ROLLBACK on any error
+      await client.query('ROLLBACK');
+      
+      console.error('❌ Booking creation failed:', error.message);
+      throw error;
+      
+    } finally {
+      // Always release connection
+      client.release();
+    }
   }
 
   /**
@@ -341,11 +507,11 @@ class BookingService {
 
     const result = await pool.query(updateQuery, [userId, bookingId]);
 
-    // Free up the connector
-    await pool.query(
-      `UPDATE cong_sac SET trang_thai = 'trong' WHERE id_cong_sac = $1`,
-      [booking.id_cong_sac]
-    );
+    // ✅ KHÔNG CẦN FREE CONNECTOR
+    // Vì không lock connector khi đặt chỗ (soft reservation)
+    // Connector vẫn ở trạng thái ban đầu
+
+    console.log(`✅ Booking ${bookingId} cancelled (soft reservation removed)`);
 
     return result.rows[0];
   }

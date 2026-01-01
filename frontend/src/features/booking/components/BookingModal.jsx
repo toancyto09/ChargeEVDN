@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, Clock, Zap, Battery, AlertCircle } from 'lucide-react';
+import { X, Calendar, Clock, Zap, Battery, AlertCircle, CheckCircle, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { bookingAPI } from '../../../services/api';
 
 export default function BookingModal({ isOpen, onClose, station, connector, vehicle }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [bookingResult, setBookingResult] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [duration, setDuration] = useState(1); // hours
@@ -275,207 +278,376 @@ export default function BookingModal({ isOpen, onClose, station, connector, vehi
       if (response.data.success) {
         const booking = response.data.data;
         
-        // Success - no payment needed now (will pay after charging)
-        toast.success('Đặt chỗ thành công! Bạn sẽ thanh toán sau khi hoàn thành sạc.');
+        // ✅ INSTANT BOOKING SUCCESS!
+        // Store booking result to show in Success Modal
+        setBookingResult({
+          booking: booking,
+          station: station,
+          connector: connector,
+          vehicle: vehicle,
+          checkInDeadline: new Date(booking.het_han),
+          startTime: new Date(booking.thoi_gian_bat_dau)
+        });
         
-        // Close modal
-        onClose();
-        
-        // Navigate to bookings page
-        setTimeout(() => {
-          navigate('/bookings');
-        }, 1000);
+        // Show Success Modal with QR Code
+        setShowSuccessModal(true);
       }
     } catch (error) {
       console.error('Booking error:', error);
-      toast.error(error.response?.data?.message || 'Đặt chỗ thất bại');
+      
+      // Handle 409 Conflict (slot not available)
+      if (error.response?.status === 409) {
+        toast.error(
+          error.response?.data?.message || 'Khung giờ này đã kín. Vui lòng chọn thời gian khác.',
+          { duration: 5000 }
+        );
+      } else {
+        toast.error(error.response?.data?.message || 'Đặt chỗ thất bại. Vui lòng thử lại.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  // Handle close success modal and navigate
+  const handleSuccessClose = () => {
+    setShowSuccessModal(false);
+    setBookingResult(null);
+    onClose(); // Close booking modal
+    
+    // Navigate to bookings page
+    setTimeout(() => {
+      navigate('/bookings');
+    }, 300);
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1002] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 rounded-t-2xl">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-2xl font-bold mb-1">Đặt chỗ sạc</h2>
-              <p className="text-blue-100 text-sm">{station?.ten_tram}</p>
+    <>
+      {/* Main Booking Modal */}
+      <div className="fixed inset-0 z-[1002] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          {/* Header */}
+          <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 rounded-t-2xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-2xl font-bold mb-1">Đặt chỗ sạc</h2>
+                <p className="text-blue-100 text-sm">{station?.ten_tram}</p>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
+          </div>
+
+          {/* Content */}
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {/* Station & Connector Info */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Loại cổng:</span>
+                <span className="font-semibold">{connector?.loai_cong}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Công suất:</span>
+                <span className="font-semibold">{connector?.cong_suat_kwh} kW</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Giá:</span>
+                <span className="font-semibold text-green-600">
+                  {station?.gia_kwh?.toLocaleString('vi-VN')} đ/kWh
+                </span>
+              </div>
+            </div>
+
+            {/* Vehicle Info */}
+            {vehicle && (
+              <div className="bg-blue-50 rounded-xl p-4 space-y-2">
+                <div className="flex items-center gap-2 text-blue-900 font-semibold mb-2">
+                  <Battery className="w-5 h-5" />
+                  <span>Phương tiện</span>
+                </div>
+                <div className="text-sm space-y-1">
+                  <p><span className="text-gray-600">Xe:</span> {vehicle.hang_xe} {vehicle.dong_xe}</p>
+                  <p><span className="text-gray-600">Biển số:</span> {vehicle.bien_so || 'N/A'}</p>
+                  <p><span className="text-gray-600">Pin:</span> {vehicle.dung_luong_pin_kwh} kWh</p>
+                </div>
+              </div>
+            )}
+
+            {/* Date Selection - Smart 6h window */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Calendar className="w-4 h-4 inline mr-2" />
+                Ngày sạc
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => {
+                  setSelectedDate(e.target.value);
+                  updateEndTime(e.target.value, selectedTime, duration);
+                }}
+                min={new Date().toISOString().split('T')[0]}
+                max={(() => {
+                  const maxTime = new Date();
+                  maxTime.setHours(maxTime.getHours() + 6);
+                  return maxTime.toISOString().split('T')[0];
+                })()}
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Có thể đặt trong vòng 6 giờ tới (kể cả qua ngày)
+              </p>
+            </div>
+
+            {/* Time Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Clock className="w-4 h-4 inline mr-2" />
+                Giờ bắt đầu
+              </label>
+              <input
+                type="time"
+                value={selectedTime}
+                onChange={(e) => {
+                  setSelectedTime(e.target.value);
+                  updateEndTime(selectedDate, e.target.value, duration);
+                }}
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Tối thiểu 15 phút từ bây giờ
+              </p>
+            </div>
+
+            {/* Duration Selection - Slider */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Zap className="w-4 h-4 inline mr-2" />
+                Thời gian sạc: <span className="text-blue-600 font-semibold">{duration}h</span>
+                <span className="text-gray-500 text-sm ml-2">({Math.round(duration * 60)} phút)</span>
+              </label>
+              <input
+                type="range"
+                min="0.5"
+                max="6"
+                step="0.5"
+                value={duration}
+                onChange={handleDurationChange}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>30 phút</span>
+                <span>6 giờ</span>
+              </div>
+            </div>
+
+            {/* End Time Display */}
+            {endTime && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Kết thúc dự kiến:</p>
+                    <p className="text-lg font-semibold text-blue-600">{endTime}</p>
+                  </div>
+                  <Clock className="w-8 h-8 text-blue-400" />
+                </div>
+              </div>
+            )}
+
+            {/* Estimates */}
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 space-y-3 border-2 border-emerald-200">
+              <h3 className="font-semibold text-emerald-900 mb-2">Ước tính</h3>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-700">Điện năng:</span>
+                <span className="font-bold text-emerald-700">~{estimatedKwh.toFixed(1)} kWh</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-700">Chi phí:</span>
+                <span className="font-bold text-emerald-700 text-lg">
+                  ~{estimatedCost.toLocaleString('vi-VN')} đ
+                </span>
+              </div>
+            </div>
+
+            {/* Warning */}
+            <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-800">
+                Vui lòng đến trước giờ đặt chỗ 15 phút. Đặt chỗ sẽ tự động hủy nếu bạn không check-in đúng giờ.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Đang xử lý...' : 'Xác nhận đặt chỗ'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* ✅ SUCCESS MODAL - INSTANT BOOKING APPROVED */}
+      {showSuccessModal && bookingResult && (
+        <div className="fixed inset-0 z-[1003] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[95vh] overflow-y-auto animate-in fade-in zoom-in duration-300">
+            {/* Success Header */}
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-6 rounded-t-2xl">
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 animate-bounce">
+                  <CheckCircle className="w-10 h-10 text-green-500" />
+                </div>
+                <h2 className="text-2xl font-bold mb-2">Đặt chỗ thành công! 🎉</h2>
+                <p className="text-green-100 text-sm">
+                  Đơn đặt chỗ đã được xác nhận tự động
+                </p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              {/* QR Code Section */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <QrCode className="w-5 h-5 text-blue-600" />
+                  <h3 className="font-bold text-blue-900 text-lg">Mã QR Check-in</h3>
+                </div>
+                
+                {/* QR Code Display */}
+                <div className="bg-white p-4 rounded-xl shadow-inner flex justify-center">
+                  <QRCodeSVG 
+                    value={bookingResult.booking.ma_xac_nhan || 'BOOKING_CODE'}
+                    size={200}
+                    level="H"
+                    includeMargin={true}
+                  />
+                </div>
+                
+                <div className="mt-4 text-center">
+                  <p className="text-xs text-gray-600 mb-1">Mã xác nhận</p>
+                  <p className="font-mono font-bold text-lg text-blue-600">
+                    {bookingResult.booking.ma_xac_nhan}
+                  </p>
+                </div>
+              </div>
+
+              {/* Booking Info */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                <h3 className="font-semibold text-gray-900 border-b pb-2">Thông tin đặt chỗ</h3>
+                
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Trạm sạc:</span>
+                    <span className="font-semibold text-right">{bookingResult.station.ten_tram}</span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Cổng sạc:</span>
+                    <span className="font-semibold">
+                      {bookingResult.connector.loai_cong} - {bookingResult.connector.cong_suat_kwh}kW
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Phương tiện:</span>
+                    <span className="font-semibold text-right">
+                      {bookingResult.vehicle.hang_xe} {bookingResult.vehicle.dong_xe}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Thời gian:</span>
+                    <span className="font-semibold">
+                      {bookingResult.startTime.toLocaleString('vi-VN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        day: '2-digit',
+                        month: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Check-in Deadline Warning */}
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-amber-900 mb-1">Lưu ý quan trọng!</p>
+                    <p className="text-sm text-amber-800 leading-relaxed">
+                      Vui lòng đến trạm và check-in trước{' '}
+                      <span className="font-bold">
+                        {bookingResult.checkInDeadline.toLocaleString('vi-VN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          day: '2-digit',
+                          month: '2-digit'
+                        })}
+                      </span>
+                      {' '}(15 phút sau giờ bắt đầu). Đặt chỗ sẽ tự động hủy nếu bạn không đến đúng giờ.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Instructions */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                  <QrCode className="w-4 h-4" />
+                  Hướng dẫn check-in
+                </h4>
+                <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                  <li>Đến trạm sạc trước giờ hẹn</li>
+                  <li>Quét mã QR tại trạm hoặc nhập mã xác nhận</li>
+                  <li>Kết nối cáp sạc và bắt đầu sạc</li>
+                  <li>Thanh toán sau khi hoàn thành sạc</li>
+                </ol>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    // Copy QR code to clipboard
+                    navigator.clipboard.writeText(bookingResult.booking.ma_xac_nhan);
+                    toast.success('Đã sao chép mã xác nhận!');
+                  }}
+                  className="flex-1 px-4 py-3 border-2 border-blue-500 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+                >
+                  Sao chép mã
+                </button>
+                <button
+                  onClick={handleSuccessClose}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg font-medium transition-all shadow-lg"
+                >
+                  Xem đơn đặt chỗ
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* Content */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Station & Connector Info */}
-          <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Loại cổng:</span>
-              <span className="font-semibold">{connector?.loai_cong}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Công suất:</span>
-              <span className="font-semibold">{connector?.cong_suat_kwh} kW</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Giá:</span>
-              <span className="font-semibold text-green-600">
-                {station?.gia_kwh?.toLocaleString('vi-VN')} đ/kWh
-              </span>
-            </div>
-          </div>
-
-          {/* Vehicle Info */}
-          {vehicle && (
-            <div className="bg-blue-50 rounded-xl p-4 space-y-2">
-              <div className="flex items-center gap-2 text-blue-900 font-semibold mb-2">
-                <Battery className="w-5 h-5" />
-                <span>Phương tiện</span>
-              </div>
-              <div className="text-sm space-y-1">
-                <p><span className="text-gray-600">Xe:</span> {vehicle.hang_xe} {vehicle.dong_xe}</p>
-                <p><span className="text-gray-600">Biển số:</span> {vehicle.bien_so || 'N/A'}</p>
-                <p><span className="text-gray-600">Pin:</span> {vehicle.dung_luong_pin_kwh} kWh</p>
-              </div>
-            </div>
-          )}
-
-          {/* Date Selection - Smart 6h window */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Calendar className="w-4 h-4 inline mr-2" />
-              Ngày sạc
-            </label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => {
-                setSelectedDate(e.target.value);
-                updateEndTime(e.target.value, selectedTime, duration);
-              }}
-              min={new Date().toISOString().split('T')[0]}
-              max={(() => {
-                const maxTime = new Date();
-                maxTime.setHours(maxTime.getHours() + 6);
-                return maxTime.toISOString().split('T')[0];
-              })()}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Có thể đặt trong vòng 6 giờ tới (kể cả qua ngày)
-            </p>
-          </div>
-
-          {/* Time Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Clock className="w-4 h-4 inline mr-2" />
-              Giờ bắt đầu
-            </label>
-            <input
-              type="time"
-              value={selectedTime}
-              onChange={(e) => {
-                setSelectedTime(e.target.value);
-                updateEndTime(selectedDate, e.target.value, duration);
-              }}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Tối thiểu 15 phút từ bây giờ
-            </p>
-          </div>
-
-          {/* Duration Selection - Slider */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Zap className="w-4 h-4 inline mr-2" />
-              Thời gian sạc: <span className="text-blue-600 font-semibold">{duration}h</span>
-              <span className="text-gray-500 text-sm ml-2">({Math.round(duration * 60)} phút)</span>
-            </label>
-            <input
-              type="range"
-              min="0.5"
-              max="6"
-              step="0.5"
-              value={duration}
-              onChange={handleDurationChange}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>30 phút</span>
-              <span>6 giờ</span>
-            </div>
-          </div>
-
-          {/* End Time Display */}
-          {endTime && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Kết thúc dự kiến:</p>
-                  <p className="text-lg font-semibold text-blue-600">{endTime}</p>
-                </div>
-                <Clock className="w-8 h-8 text-blue-400" />
-              </div>
-            </div>
-          )}
-
-          {/* Estimates */}
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 space-y-3 border-2 border-emerald-200">
-            <h3 className="font-semibold text-emerald-900 mb-2">Ước tính</h3>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">Điện năng:</span>
-              <span className="font-bold text-emerald-700">~{estimatedKwh.toFixed(1)} kWh</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">Chi phí:</span>
-              <span className="font-bold text-emerald-700 text-lg">
-                ~{estimatedCost.toLocaleString('vi-VN')} đ
-              </span>
-            </div>
-          </div>
-
-          {/* Warning */}
-          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800">
-              Vui lòng đến trước giờ đặt chỗ 15 phút. Đặt chỗ sẽ tự động hủy nếu bạn không check-in đúng giờ.
-            </p>
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Đang xử lý...' : 'Xác nhận đặt chỗ'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      )}
+    </>
   );
 }
 

@@ -20,6 +20,7 @@ import PageLayout from '../../../components/layout/PageLayout';
 import ExpiryCountdown from '../components/ExpiryCountdown';
 import ExtendBookingModal from '../components/ExtendBookingModal';
 import RatingModal from '../../rating/components/RatingModal';
+import CheckInModal from '../components/CheckInModal';
 
 export default function MyBookingsPage() {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ export default function MyBookingsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [extendModalOpen, setExtendModalOpen] = useState(false);
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [checkInModalOpen, setCheckInModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
 
   useEffect(() => {
@@ -94,14 +96,16 @@ export default function MyBookingsPage() {
     loadBookings();
   };
 
-  const handleStartCharging = async (booking) => {
+  const handleStartCharging = (booking) => {
     // Validate if it's time to start charging
     const now = new Date();
     const startTime = new Date(booking.thoi_gian_bat_dau);
-    const endTime = new Date(booking.thoi_gian_ket_thuc);
 
     // Allow starting 15 minutes before booking time
     const earlyStart = new Date(startTime.getTime() - 15 * 60 * 1000);
+    
+    // ✅ FIX: Chỉ cho phép check-in đến 15 phút SAU giờ bắt đầu
+    const lateDeadline = new Date(startTime.getTime() + 15 * 60 * 1000);
 
     if (now < earlyStart) {
       const minutesUntil = Math.floor((earlyStart - now) / 60000);
@@ -109,26 +113,40 @@ export default function MyBookingsPage() {
       return;
     }
 
-    if (now > endTime) {
-      toast.error('Đã quá thời gian đặt chỗ. Vui lòng đặt lại.');
+    if (now > lateDeadline) {
+      toast.error('Đã quá thời gian check-in (muộn quá 15 phút). Booking đã hết hạn.');
       return;
     }
 
-    if (!confirm('Bắt đầu sạc ngay bây giờ?')) return;
+    // Show check-in modal
+    setSelectedBooking(booking);
+    setCheckInModalOpen(true);
+  };
 
+  const handleCheckInSuccess = async (booking) => {
     try {
       const response = await sessionAPI.start(booking.id_dat_cho);
 
       if (response.data.success) {
-        toast.success('Đã bắt đầu sạc! Đang chuyển đến trang giám sát...');
-        // Navigate to active session page
-        setTimeout(() => {
-          navigate(`/sessions/${response.data.data.id_phien_sac}`);
-        }, 1000);
+        // Close modal first
+        setCheckInModalOpen(false);
+        
+        // Show success message
+        toast.success('✅ Đã check-in thành công!', {
+          duration: 5000,
+          description: `Phiên sạc đã bắt đầu. Mã phiên: #${response.data.data.id_phien_sac}. Vui lòng reload trang để cập nhật trạng thái.`
+        });
+        
+        // TODO: Fix reload bookings issue
+        // Tạm thời user phải reload trang thủ công
+        // setTimeout(() => {
+        //   loadBookings();
+        // }, 1000);
       }
     } catch (error) {
       console.error('Error starting charging:', error);
       toast.error(error.response?.data?.message || 'Không thể bắt đầu sạc');
+      throw error;
     }
   };
 
@@ -395,6 +413,14 @@ export default function MyBookingsPage() {
         booking={selectedBooking}
         onRatingSuccess={handleRatingSuccess}
       />
+
+      {/* Check-in Modal */}
+      <CheckInModal
+        isOpen={checkInModalOpen}
+        onClose={() => setCheckInModalOpen(false)}
+        booking={selectedBooking}
+        onCheckInSuccess={handleCheckInSuccess}
+      />
     </PageLayout>
   );
 }
@@ -433,11 +459,12 @@ function BookingCard({
   const duration =
     Math.round(((endTime - startTime) / (1000 * 60 * 60)) * 10) / 10;
 
-  // Check if user can start charging (15 minutes before to booking end time)
+  // ✅ FIX: Check if user can start charging
+  // Window: startTime - 15 phút đến startTime + 15 phút
   const canStartCharging =
     booking.trang_thai === 'da_xac_nhan' &&
     now >= new Date(startTime.getTime() - 15 * 60 * 1000) &&
-    now <= endTime;
+    now <= new Date(startTime.getTime() + 15 * 60 * 1000);  // ✅ Chỉ 15p sau start
 
   return (
     <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden border border-gray-100">

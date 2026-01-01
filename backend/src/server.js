@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { verifyEmailConfig } from './utils/emailService.js';
 import { startCleanupJob } from './jobs/cleanupExpiredBookings.js';
 import { startAutoReleaseJob } from './jobs/releaseExpiredBookings.js';
+import { startPenaltyChecker } from './cron/penalty-checker.js';
 
 // Sau dòng await connectDB();
 console.log('\n📧 Checking email configuration...');
@@ -32,6 +33,7 @@ const startServer = async () => {
     console.log('\n⏰ Starting scheduled jobs...');
     startCleanupJob();
     startAutoReleaseJob();
+    startPenaltyChecker();  // ✅ NEW: Penalty checker
     
     // Start server
     const server = app.listen(PORT, () => {
