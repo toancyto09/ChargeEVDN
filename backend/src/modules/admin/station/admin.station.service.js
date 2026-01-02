@@ -244,24 +244,79 @@ class AdminStationService {
       throw new Error('Vui lòng nhập lý do từ chối');
     }
 
-    const query = `
-      UPDATE tram_sac
-      SET 
-        trang_thai_duyet = 'rejected',
-        id_nguoi_duyet = $2,
-        ngay_duyet = NOW(),
-        ly_do_tu_choi = $3
-      WHERE id_tram = $1
-      RETURNING *
-    `;
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
 
-    const result = await pool.query(query, [stationId, adminId, reason.trim()]);
+      // Update station status
+      const query = `
+        UPDATE tram_sac
+        SET 
+          trang_thai_duyet = 'rejected',
+          id_nguoi_duyet = $2,
+          ngay_duyet = NOW(),
+          ly_do_tu_choi = $3
+        WHERE id_tram = $1
+        RETURNING *
+      `;
 
-    if (result.rows.length === 0) {
-      throw new Error('Không tìm thấy trạm sạc');
+      const result = await client.query(query, [stationId, adminId, reason.trim()]);
+
+      if (result.rows.length === 0) {
+        throw new Error('Không tìm thấy trạm sạc');
+      }
+
+      const station = result.rows[0];
+
+      // Get owner email for notification
+      const ownerQuery = `
+        SELECT 
+          nd.email,
+          nd.ho_ten,
+          ts.ten_tram,
+          dn.ten_doanh_nghiep
+        FROM tram_sac ts
+        JOIN doanh_nghiep dn ON dn.id_doanh_nghiep = ts.id_doanh_nghiep
+        LEFT JOIN nguoi_dung nd ON nd.id_nguoi_dung = dn.id_chu_so_huu
+        WHERE ts.id_tram = $1
+      `;
+
+      const ownerResult = await client.query(ownerQuery, [stationId]);
+
+      await client.query('COMMIT');
+
+      // Send email notification (async, don't block)
+      if (ownerResult.rows.length > 0) {
+        const owner = ownerResult.rows[0];
+        
+        // Dynamic import to avoid circular deps
+        import('../../../utils/emailService.js')
+          .then(({ sendStationRejectionEmail }) => {
+            return sendStationRejectionEmail(
+              owner.email,
+              owner.ho_ten,
+              owner.ten_tram,
+              owner.ten_doanh_nghiep,
+              reason.trim()
+            );
+          })
+          .then(() => {
+            console.log(`✅ Rejection email sent to: ${owner.email}`);
+          })
+          .catch(error => {
+            console.error('❌ Failed to send rejection email:', error.message);
+          });
+      }
+
+      return station;
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-
-    return result.rows[0];
   }
 }
 

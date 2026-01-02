@@ -205,6 +205,197 @@ Trân trọng,
 };
 
 /**
+ * Send station rejection email
+ */
+export const sendStationRejectionEmail = async (email, name, stationName, businessName, reason) => {
+  const mailOptions = {
+    from: {
+      name: 'ChargeEVDN',
+      address: process.env.EMAIL_USER,
+    },
+    to: email,
+    subject: '❌ Yêu cầu duyệt trạm sạc bị từ chối - ChargeEVDN',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #333;
+            margin: 0;
+            padding: 0;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px;
+            background: #f5f5f5;
+          }
+          .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #d32f2f;
+          }
+          .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #388E3C;
+            margin-bottom: 10px;
+          }
+          .subtitle {
+            color: #666;
+            font-size: 14px;
+          }
+          .rejection-box {
+            background: #ffebee;
+            border-left: 4px solid #d32f2f;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+          }
+          .rejection-box h3 {
+            color: #d32f2f;
+            margin-top: 0;
+          }
+          .station-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+          }
+          .station-info p {
+            margin: 5px 0;
+          }
+          .next-steps {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+          }
+          .next-steps ol {
+            margin: 10px 0;
+            padding-left: 20px;
+          }
+          .next-steps li {
+            margin: 10px 0;
+          }
+          .footer {
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+          }
+          .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #388E3C;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="card">
+            <div class="header">
+              <div class="logo">⚡ ChargeEVDN</div>
+              <div class="subtitle">Hệ thống quản lý trạm sạc xe điện</div>
+            </div>
+            
+            <h2 style="color: #d32f2f;">Xin chào ${name},</h2>
+            
+            <p>Chúng tôi rất tiếc phải thông báo rằng yêu cầu duyệt trạm sạc của bạn chưa được chấp thuận.</p>
+            
+            <div class="station-info">
+              <p><strong>📍 Tên trạm:</strong> ${stationName}</p>
+              <p><strong>🏢 Doanh nghiệp:</strong> ${businessName}</p>
+              <p><strong>📅 Ngày từ chối:</strong> ${new Date().toLocaleDateString('vi-VN')}</p>
+            </div>
+            
+            <div class="rejection-box">
+              <h3>❌ Lý do từ chối:</h3>
+              <p style="font-size: 15px; line-height: 1.8;">
+                ${reason}
+              </p>
+            </div>
+            
+            <div class="next-steps">
+              <h4 style="color: #2196f3; margin-top: 0;">📋 Các bước tiếp theo:</h4>
+              <ol>
+                <li>Xem lại thông tin trạm sạc theo lý do từ chối ở trên</li>
+                <li>Chỉnh sửa/bổ sung thông tin cần thiết</li>
+                <li>Đăng nhập vào hệ thống ChargeEVDN</li>
+                <li>Cập nhật lại thông tin trạm sạc</li>
+                <li>Yêu cầu duyệt lại sẽ được gửi tự động</li>
+              </ol>
+            </div>
+            
+            <p>Nếu bạn có bất kỳ câu hỏi nào hoặc cần hỗ trợ, vui lòng liên hệ với chúng tôi qua email hoặc hotline.</p>
+            
+            <p style="margin-top: 30px;">
+              Trân trọng,<br>
+              <strong style="color: #388E3C;">Đội ngũ ChargeEVDN</strong>
+            </p>
+            
+            <div class="footer">
+              <p>📧 Email này được gửi tự động, vui lòng không trả lời.</p>
+              <p>📞 Hotline: 1900-xxxx | 🌐 Website: chargeevdn.com</p>
+              <p style="margin-top: 10px;">&copy; 2026 ChargeEVDN. All rights reserved.</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+Xin chào ${name},
+
+Yêu cầu duyệt trạm sạc "${stationName}" của doanh nghiệp ${businessName} chưa được chấp thuận.
+
+LÝ DO TỪ CHỐI:
+${reason}
+
+CÁC BƯỚC TIẾP THEO:
+1. Xem lại thông tin trạm theo lý do từ chối
+2. Chỉnh sửa/bổ sung thông tin cần thiết
+3. Đăng nhập vào hệ thống ChargeEVDN
+4. Cập nhật lại thông tin trạm
+5. Gửi lại yêu cầu duyệt
+
+Nếu cần hỗ trợ, vui lòng liên hệ hotline: 1900-xxxx
+
+Trân trọng,
+Đội ngũ ChargeEVDN
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Station rejection email sent:', info.messageId);
+    console.log('📧 To:', email);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('❌ Email error:', error.message);
+    throw new Error('Không thể gửi email');
+  }
+};
+
+/**
  * Verify email configuration
  */
 export const verifyEmailConfig = async () => {
