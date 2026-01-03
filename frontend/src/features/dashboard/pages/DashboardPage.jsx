@@ -119,64 +119,51 @@ export default function DashboardPage() {
 
   return (
     <PageLayout className="bg-gray-50">
-      {/* Header with Gradient */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
+      {/* Header - Theme emerald đậm */}
+      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-          <div className="py-6 md:py-8">
+          <div className="py-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               {/* User Info */}
-              <Link 
-                to="/profile"
-                className="flex items-center gap-4 group"
-              >
+              <div className="flex items-center gap-4">
                 <div className="relative">
                   {user?.duong_dan_anh_dai_dien && user.duong_dan_anh_dai_dien !== 'null' ? (
                     <img
                       src={`http://localhost:8080${user.duong_dan_anh_dai_dien}`}
                       alt={user.ho_ten}
-                      className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover border-4 border-white/30 group-hover:border-white/60 transition-all shadow-lg"
-                      onError={(e) => {
-                        // Nếu ảnh load lỗi, ẩn img và hiện fallback
-                        e.target.style.display = 'none';
-                      }}
+                      className="w-16 h-16 rounded-full object-cover border-3 border-white/40 shadow-lg"
+                      onError={(e) => { e.target.style.display = 'none'; }}
                     />
                   ) : null}
                   {(!user?.duong_dan_anh_dai_dien || user?.duong_dan_anh_dai_dien === 'null') && (
-                    <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border-4 border-white/30 group-hover:border-white/60 transition-all shadow-lg">
-                      <span className="text-2xl md:text-3xl font-bold text-white">
+                    <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border-3 border-white/40 shadow-lg">
+                      <span className="text-2xl font-bold text-white">
                         {user?.ho_ten?.charAt(0)?.toUpperCase() || 'U'}
                       </span>
                     </div>
                   )}
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white"></div>
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white"></div>
                 </div>
                 <div>
-                  <h1 className="text-xl md:text-2xl font-bold group-hover:text-blue-100 transition-colors">
+                  <h1 className="text-xl md:text-2xl font-bold">
                     Xin chào, {user?.ho_ten || 'Người dùng'}!
                   </h1>
-                  <p className="text-blue-100 text-sm mt-1">{user?.email}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-xs px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white rounded-full font-medium">
-                      {user?.vai_tro === 'user' && '👤 Người dùng'}
-                      {user?.vai_tro === 'owner' && '🏢 Chủ trạm'}
-                      {user?.vai_tro === 'admin' && '⚙️ Quản trị viên'}
-                    </span>
-                  </div>
+                  <p className="text-white/90 text-sm mt-0.5">{user?.email}</p>
                 </div>
-              </Link>
+              </div>
 
               {/* Action Buttons */}
               <div className="flex items-center gap-3">
                 <Link
                   to="/profile"
-                  className="flex items-center gap-2 px-4 py-2.5 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white rounded-lg transition-all border border-white/20 hover:border-white/40"
+                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all border border-white/30"
                 >
                   <Settings size={18} />
-                  <span className="hidden sm:inline">Cài đặt</span>
+                  <span className="hidden sm:inline">Hồ sơ</span>
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors shadow-lg hover:shadow-xl"
+                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all border border-white/30"
                 >
                   <LogOut size={18} />
                   <span className="hidden sm:inline">Đăng xuất</span>
@@ -188,128 +175,69 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl py-6 md:py-8">
-        {/* Welcome Message */}
-        <div className="mb-6">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-            Dashboard
-          </h2>
-          <p className="text-gray-600">
-            Quản lý hoạt động sạc xe điện của bạn
-          </p>
-        </div>
-
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl py-8">
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
           <StatCard
             icon={<Car className="w-6 h-6" />}
             title="Phương tiện"
             value={stats.vehicles}
-            gradient="from-blue-500 to-blue-600"
-            iconBg="bg-blue-100"
-            iconColor="text-blue-600"
+            color="green"
           />
           <StatCard
             icon={<Calendar className="w-6 h-6" />}
             title="Đặt chỗ"
             value={stats.bookings}
-            gradient="from-green-500 to-green-600"
-            iconBg="bg-green-100"
-            iconColor="text-green-600"
+            color="green"
           />
-          <StatCard
+          {/* <StatCard
             icon={<MapPin className="w-6 h-6" />}
             title="Trạm gần"
             value={stats.nearbyStations}
-            gradient="from-purple-500 to-purple-600"
-            iconBg="bg-purple-100"
-            iconColor="text-purple-600"
-          />
-          <StatCard
-            icon={<Star className="w-6 h-6" />}
-            title="Đánh giá"
-            value={stats.reviews}
-            gradient="from-yellow-500 to-yellow-600"
-            iconBg="bg-yellow-100"
-            iconColor="text-yellow-600"
-          />
+            color="green"
+          /> */}
         </div>
 
-        {/* SOC Indicator - Show if user has vehicles */}
+        {/* SOC Indicator */}
         {mainVehicle && (
           <div className="mb-8">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
-              Xe của bạn
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              Xe chính
             </h3>
             <SOCIndicator vehicle={mainVehicle} />
           </div>
         )}
 
-        {/* Action Cards */}
+        {/* Action Cards - CHỈ CHỨC NĂNG HOẠT ĐỘNG */}
         <div>
-          <h3 className="text-xl font-bold text-gray-900 mb-4">
-            Chức năng chính
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Chức năng
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <ActionCard
-              icon="🗺️"
-              title="Tìm trạm sạc"
-              description="Tìm trạm sạc gần nhất dựa trên vị trí của bạn"
-              gradient="from-blue-500 to-blue-600"
-              onClick={() => toast.info('Chức năng đang phát triển')}
-            />
-            <ActionCard
-              icon="📅"
-              title="Đặt chỗ mới"
-              description="Đặt chỗ trước để không phải chờ đợi"
-              gradient="from-green-500 to-green-600"
-              onClick={() => toast.info('Chức năng đang phát triển')}
-            />
-            <ActionCard
-              icon="🚗"
+              icon={<Car className="w-7 h-7" />}
               title="Quản lý xe"
-              description="Thêm và quản lý phương tiện của bạn"
-              gradient="from-red-500 to-red-600"
+              description="Thêm, sửa, xóa phương tiện"
               onClick={() => navigate('/vehicles')}
             />
             <ActionCard
-              icon="📊"
-              title="Lịch sử sạc"
-              description="Xem lịch sử các phiên sạc đã hoàn thành"
-              gradient="from-purple-500 to-purple-600"
-              onClick={() => toast.info('Chức năng đang phát triển')}
+              icon={<Calendar className="w-7 h-7" />}
+              title="Đặt chỗ của tôi"
+              description="Xem và quản lý đặt chỗ"
+              onClick={() => navigate('/bookings')}
             />
             <ActionCard
-              icon="💳"
-              title="Thanh toán"
-              description="Quản lý thanh toán và hóa đơn"
-              gradient="from-indigo-500 to-indigo-600"
+              icon={<User className="w-7 h-7" />}
+              title="Lịch sử thanh toán"
+              description="Xem lịch sử giao dịch"
               onClick={() => navigate('/payment/history')}
             />
             <ActionCard
-              icon="⭐"
-              title="Đánh giá"
-              description="Xem và viết đánh giá về các trạm"
-              gradient="from-yellow-500 to-yellow-600"
-              onClick={() => toast.info('Chức năng đang phát triển')}
+              icon={<Settings className="w-7 h-7" />}
+              title="Hồ sơ cá nhân"
+              description="Cập nhật thông tin"
+              onClick={() => navigate('/profile')}
             />
-          </div>
-        </div>
-
-        {/* Info Banner */}
-        <div className="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6">
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <span className="text-2xl">ℹ️</span>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                Dashboard đang phát triển
-              </h4>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Các chức năng sẽ được bổ sung dần. Cảm ơn bạn đã kiên nhẫn!
-              </p>
-            </div>
           </div>
         </div>
       </div>
@@ -317,40 +245,50 @@ export default function DashboardPage() {
   );
 }
 
-// Stat Card Component
-function StatCard({ icon, title, value, gradient, iconBg, iconColor }) {
+// Stat Card Component - Emerald đậm, text dễ đọc
+function StatCard({ icon, title, value, color }) {
+  const colorClasses = {
+    green: {
+      bg: 'bg-emerald-600', // Đậm hơn cho contrast tốt
+      iconBg: 'bg-white/20',
+      iconColor: 'text-white',
+    },
+  };
+
+  const classes = colorClasses[color] || colorClasses.green;
+
   return (
-    <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group border border-gray-100">
-      <div className={`bg-gradient-to-r ${gradient} p-4 md:p-5`}>
-        <div className={`${iconBg} ${iconColor} w-12 h-12 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+    <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100 overflow-hidden">
+      <div className={`${classes.bg} p-4`}>
+        <div className={`${classes.iconBg} ${classes.iconColor} w-10 h-10 rounded-lg flex items-center justify-center mb-2 shadow-sm`}>
           {icon}
         </div>
-        <p className="text-white/90 text-sm font-medium mb-1">{title}</p>
-        <p className="text-3xl md:text-4xl font-bold text-white">{value}</p>
+        <p className="text-white font-medium mb-1">{title}</p>
+        <p className="text-3xl font-bold text-white">{value}</p>
       </div>
     </div>
   );
 }
 
-// Action Card Component
-function ActionCard({ icon, title, description, gradient, onClick }) {
+// Action Card Component - Clean, chỉ icon Lucide
+function ActionCard({ icon, title, description, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-gray-100 hover:border-gray-200 transition-all duration-300 text-left w-full group overflow-hidden"
+      className="bg-white rounded-lg shadow-sm hover:shadow-md border border-gray-200 hover:border-emerald-500 transition-all text-left w-full group p-5"
     >
-      <div className={`bg-gradient-to-r ${gradient} p-4 md:p-5`}>
-        <div className="text-4xl md:text-5xl mb-3 group-hover:scale-110 transition-transform">
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0 w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
           {icon}
         </div>
-      </div>
-      <div className="p-4 md:p-5">
-        <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-          {title}
-        </h3>
-        <p className="text-sm text-gray-600 leading-relaxed">
-          {description}
-        </p>
+        <div className="flex-1">
+          <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-emerald-600 transition-colors">
+            {title}
+          </h3>
+          <p className="text-sm text-gray-600">
+            {description}
+          </p>
+        </div>
       </div>
     </button>
   );
