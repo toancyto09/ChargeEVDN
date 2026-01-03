@@ -21,6 +21,7 @@ import ExpiryCountdown from '../components/ExpiryCountdown';
 import ExtendBookingModal from '../components/ExtendBookingModal';
 import RatingModal from '../../rating/components/RatingModal';
 import CheckInModal from '../components/CheckInModal';
+import { useConfirm } from '../../../components/common/ConfirmDialog';
 
 export default function MyBookingsPage() {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ export default function MyBookingsPage() {
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [checkInModalOpen, setCheckInModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const { confirm } = useConfirm();
 
   useEffect(() => {
     loadBookings();
@@ -56,7 +58,15 @@ export default function MyBookingsPage() {
   };
 
   const handleCancelBooking = async (bookingId) => {
-    if (!confirm('Bạn có chắc muốn hủy đặt chỗ này?')) return;
+    const confirmed = await confirm({
+      title: 'Hủy đặt chỗ',
+      message: 'Bạn có chắc muốn hủy đặt chỗ này?',
+      confirmText: 'Hủy đặt chỗ',
+      cancelText: 'Không',
+      type: 'danger'
+    });
+    
+    if (!confirmed) return;
 
     try {
       const response = await bookingAPI.cancel(bookingId);

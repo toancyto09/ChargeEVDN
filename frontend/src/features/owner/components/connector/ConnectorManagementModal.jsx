@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { ownerAPI } from '../../../../services/api';
 import AddConnectorModal from './AddConnectorModal';
 import EditConnectorModal from './EditConnectorModal';
+import { useConfirm } from '../../../../components/common/ConfirmDialog';
 
 /**
  * Connector Management Modal
@@ -25,6 +26,7 @@ export default function ConnectorManagementModal({ isOpen, onClose, station }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedConnector, setSelectedConnector] = useState(null);
+  const { confirm } = useConfirm();
 
   useEffect(() => {
     if (isOpen && station) {
@@ -48,7 +50,15 @@ export default function ConnectorManagementModal({ isOpen, onClose, station }) {
   };
 
   const handleDelete = async (connector) => {
-    if (!confirm(`Xóa cổng "${connector.ma_cong_tram}"?`)) return;
+    const confirmed = await confirm({
+      title: 'Xóa cổng sạc',
+      message: `Bạn có chắc muốn xóa cổng "${connector.ma_cong_tram}"? Hành động này không thể hoàn tác.`,
+      confirmText: 'Xóa',
+      cancelText: 'Hủy',
+      type: 'danger'
+    });
+    
+    if (!confirmed) return;
 
     try {
       const response = await ownerAPI.deleteConnector(connector.id_cong_sac);

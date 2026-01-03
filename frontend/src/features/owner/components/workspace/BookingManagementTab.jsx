@@ -4,6 +4,7 @@ import { Users, Calendar, CheckCircle, XCircle, Clock, Eye } from 'lucide-react'
 import { toast } from 'sonner';
 import { ownerAPI } from '../../../../services/api';
 import BookingDetailModal from '../booking/BookingDetailModal';
+import { useConfirm } from '../../../../components/common/ConfirmDialog';
 
 export default function BookingManagementTab({ stationId }) {
   const [bookings, setBookings] = useState([]);
@@ -15,6 +16,7 @@ export default function BookingManagementTab({ stationId }) {
     date_from: '',
     date_to: ''
   });
+  const { confirm } = useConfirm();
 
   useEffect(() => {
     loadData();
@@ -67,7 +69,15 @@ export default function BookingManagementTab({ stationId }) {
   };
 
   const handleCancel = async (bookingId) => {
-    if (!confirm('Bạn có chắc chắn muốn hủy đặt chỗ này?')) return;
+    const confirmed = await confirm({
+      title: 'Hủy đặt chỗ',
+      message: 'Bạn có chắc chắn muốn hủy đặt chỗ này?',
+      confirmText: 'Hủy',
+      cancelText: 'Không',
+      type: 'danger'
+    });
+    
+    if (!confirmed) return;
 
     try {
       await ownerAPI.cancelBooking(bookingId);

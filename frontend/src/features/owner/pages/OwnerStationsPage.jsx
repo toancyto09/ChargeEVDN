@@ -12,6 +12,7 @@ import AddStationModal from '../components/station/AddStationModal';
 import EditStationModal from '../components/station/EditStationModal';
 import ConnectorManagementModal from '../components/connector/ConnectorManagementModal';
 import QRCodeModal from '../components/station/QRCodeModal';
+import { useConfirm } from '../../../components/common/ConfirmDialog';
 
 /**
  * Owner Stations Page
@@ -26,6 +27,7 @@ export default function OwnerStationsPage() {
   const [showConnectorModal, setShowConnectorModal] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [selectedStation, setSelectedStation] = useState(null);
+  const { confirm } = useConfirm();
 
   useEffect(() => {
     loadStations();
@@ -48,7 +50,15 @@ export default function OwnerStationsPage() {
   };
 
   const handleDelete = async (stationId, stationName) => {
-    if (!confirm(`Bạn có chắc muốn xóa trạm "${stationName}"?`)) return;
+    const confirmed = await confirm({
+      title: 'Xóa trạm sạc',
+      message: `Bạn có chắc muốn xóa trạm "${stationName}"? Hành động này không thể hoàn tác.`,
+      confirmText: 'Xóa',
+      cancelText: 'Hủy',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
 
     try {
       const response = await ownerAPI.deleteStation(stationId);

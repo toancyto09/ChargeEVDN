@@ -20,6 +20,7 @@ import { useOwnerStation } from '../contexts/OwnerStationContext';
 import PageLayout from '../../../components/layout/PageLayout';
 import StationSelector from '../components/shared/StationSelector';
 import BookingDetailModal from '../components/booking/BookingDetailModal';
+import { useConfirm } from '../../../components/common/ConfirmDialog';
 
 /**
  * Owner Bookings Page
@@ -41,6 +42,7 @@ export default function OwnerBookingsPage() {
   // Modal
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const { confirm } = useConfirm();
   
   // Pagination
   const [pagination, setPagination] = useState({
@@ -125,9 +127,15 @@ export default function OwnerBookingsPage() {
   };
 
   const handleConfirmBooking = async (bookingId) => {
-    if (!confirm('Xác nhận đặt chỗ này? Khách hàng sẽ được thông báo.')) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Xác nhận đặt chỗ',
+      message: 'Xác nhận đặt chỗ này? Khách hàng sẽ được thông báo.',
+      confirmText: 'Xác nhận',
+      cancelText: 'Hủy',
+      type: 'success'
+    });
+
+    if (!confirmed) return;
 
     try {
       const response = await ownerAPI.confirmBooking(bookingId);
@@ -144,9 +152,15 @@ export default function OwnerBookingsPage() {
   };
 
   const handleCancelBooking = async (bookingId) => {
-    if (!confirm('Bạn có chắc muốn hủy đặt chỗ này? Khách hàng sẽ được thông báo.')) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Hủy đặt chỗ',
+      message: 'Bạn có chắc muốn hủy đặt chỗ này? Khách hàng sẽ được thông báo.',
+      confirmText: 'Hủy đặt chỗ',
+      cancelText: 'Không',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
 
     try {
       const response = await ownerAPI.cancelBooking(bookingId);

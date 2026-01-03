@@ -37,12 +37,15 @@ import AdminAnalyticsPage from './features/admin/pages/AdminAnalyticsPage';
 import AdminAuditLogPage from './features/admin/pages/AdminAuditLogPage';
 import BottomNav from './components/layout/BottomNav';
 import { UserRoute, OwnerRoute } from './components/routes/ProtectedRoute';
+import { ConfirmProvider } from './components/common/ConfirmDialog';
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <ConfirmProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </ConfirmProvider>
   );
 }
 

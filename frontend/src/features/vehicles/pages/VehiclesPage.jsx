@@ -6,6 +6,7 @@ import VehicleCard from '../components/VehicleCard';
 import AddVehicleModal from '../components/AddVehicleModal';
 import EditVehicleModal from '../components/EditVehicleModal';
 import PageLayout from '../../../components/layout/PageLayout';
+import { useConfirm } from '../../../components/common/ConfirmDialog';
 
 export default function VehiclesPage() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function VehiclesPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const { confirm } = useConfirm();
 
   useEffect(() => {
     loadVehicles();
@@ -138,9 +140,15 @@ export default function VehiclesPage() {
   };
 
   const handleDeleteVehicle = async (vehicleId) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa phương tiện này?')) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Xóa phương tiện',
+      message: 'Bạn có chắc chắn muốn xóa phương tiện này? Hành động này không thể hoàn tác.',
+      confirmText: 'Xóa',
+      cancelText: 'Hủy',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
 
     try {
       const token = localStorage.getItem('token');

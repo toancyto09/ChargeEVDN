@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { X, Building2, MapPin, CheckCircle, XCircle, Clock, DollarSign, Zap, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function StationDetailModal({ isOpen, onClose, station, onApprove, onReject }) {
   const [showRejectForm, setShowRejectForm] = useState(false);
@@ -10,29 +11,33 @@ export default function StationDetailModal({ isOpen, onClose, station, onApprove
   if (!isOpen || !station) return null;
 
   const handleApprove = async () => {
-    if (window.confirm('Bạn có chắc chắn muốn duyệt trạm này?')) {
-      setSubmitting(true);
-      try {
-        await onApprove(station.id_tram);
-      } finally {
-        setSubmitting(false);
-      }
+    setSubmitting(true);
+    try {
+      await onApprove(station.id_tram);
+      toast.success('Trạm đã được duyệt thành công!');
+    } catch (error) {
+      toast.error(error.message || 'Có lỗi xảy ra');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleReject = async () => {
     if (!rejectReason.trim()) {
-      alert('Vui lòng nhập lý do từ chối');
+      toast.error('Vui lòng nhập lý do từ chối');
       return;
     }
 
-    if (window.confirm('Bạn có chắc chắn muốn từ chối trạm này?')) {
-      setSubmitting(true);
-      try {
-        await onReject(station.id_tram, rejectReason);
-      } finally {
-        setSubmitting(false);
-      }
+    setSubmitting(true);
+    try {
+      await onReject(station.id_tram, rejectReason);
+      toast.success('Trạm đã bị từ chối');
+      setShowRejectForm(false);
+      setRejectReason('');
+    } catch (error) {
+      toast.error(error.message || 'Có lỗi xảy ra');
+    } finally {
+      setSubmitting(false);
     }
   };
 
