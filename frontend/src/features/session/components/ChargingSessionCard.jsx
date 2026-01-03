@@ -80,13 +80,13 @@ export default function ChargingSessionCard({ session, onViewDetails }) {
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-3 text-white">
+      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-3 text-white">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <h3 className="font-semibold text-base sm:text-lg line-clamp-1">
               {session.ten_tram || 'Trạm sạc'}
             </h3>
-            <p className="text-xs sm:text-sm text-green-100 mt-0.5 flex items-center gap-1">
+            <p className="text-xs sm:text-sm text-emerald-100 mt-0.5 flex items-center gap-1">
               <MapPin className="w-3 h-3" />
               <span className="line-clamp-1">{session.dia_chi || 'N/A'}</span>
             </p>

@@ -210,9 +210,9 @@ export default function ActiveSessionPage() {
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         
         {/* Station Info */}
-        <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl shadow-lg p-6 text-white">
+        <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-2xl shadow-lg p-6 text-white">
           <h2 className="text-2xl font-bold mb-2">{session.ten_tram || 'Trạm sạc'}</h2>
-          <p className="flex items-center gap-2 text-green-100">
+          <p className="flex items-center gap-2 text-emerald-100">
             <MapPin className="w-4 h-4" />
             {session.dia_chi || 'N/A'}
           </p>
