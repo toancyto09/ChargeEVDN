@@ -30,6 +30,7 @@ import PaymentHistoryPage from './features/payments/pages/PaymentHistoryPage';
 import { ActiveSessionPage, SessionsPage, QRCheckinPage } from './features/session/pages';
 import { OwnerDashboard, OwnerStationsPage, OwnerStationDetailPage, OwnerStationWorkspacePage, OwnerBookingsPage } from './features/owner/pages';
 import { OwnerStationProvider } from './features/owner/contexts/OwnerStationContext';
+import StatisticsPage from './features/statistics/pages/StatisticsPage';
 import AdminDashboard from './features/admin/pages/AdminDashboard';
 import StationApprovalPage from './features/admin/pages/StationApprovalPage';
 import UserManagementPage from './features/admin/pages/UserManagementPage';
@@ -89,7 +90,7 @@ function AppContent() {
   const isProtectedPage =
     location.pathname === '/dashboard' ||
     location.pathname === '/notifications' ||
-    location.pathname === '/settings' ||
+    location.pathname === '/statistics' ||
     location.pathname === '/route' ||
     location.pathname === '/vehicles' ||
     location.pathname === '/bookings' ||
@@ -278,9 +279,14 @@ function AppContent() {
             path="/notifications"
             element={<UserRoute><ComingSoonPage title="Thông báo" /></UserRoute>}
           />
+          {/* Redirect old settings URL to new statistics page */}
           <Route
             path="/settings"
-            element={<UserRoute><ComingSoonPage title="Cài đặt" /></UserRoute>}
+            element={<Navigate to="/statistics" replace />}
+          />
+          <Route
+            path="/statistics"
+            element={<UserRoute><StatisticsPage /></UserRoute>}
           />
           <Route
             path="/profile"
