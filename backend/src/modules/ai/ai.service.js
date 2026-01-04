@@ -163,7 +163,12 @@ function generateReasons({
   }
 
   // Good price (in bottom 25% of price range)
-  if (parsedPrice < parsedMinPrice + (parsedMaxPrice - parsedMinPrice) * 0.25) {
+  // Only show if price is valid (> 0) and there's actual price variation
+  if (
+    parsedPrice > 0 &&
+    parsedMaxPrice > parsedMinPrice &&
+    parsedPrice < parsedMinPrice + (parsedMaxPrice - parsedMinPrice) * 0.25
+  ) {
     reasons.push(REASON_TEMPLATES.GOOD_PRICE(parsedPrice));
   }
 

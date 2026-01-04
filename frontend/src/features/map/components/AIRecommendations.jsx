@@ -29,7 +29,7 @@ export function AIRecommendations({ stations, onStationClick, isDesktop, battery
             <Sparkles size={16} className="text-white" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900">
-            AI Gợi ý cho bạn
+            Top 5 gợi ý cho bạn
           </h3>
         </div>
         {/* SOC Indicator */}

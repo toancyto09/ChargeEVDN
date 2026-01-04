@@ -134,7 +134,7 @@ export default function MapPage() {
           lng: userLocation.lng,
           soc: userSOC, // Use user's actual SOC from SOC widget
           radius: filters.maxDistance,
-          limit: 10,
+          limit: 5, // Chỉ lấy top 5 trạm tốt nhất
         });
         
         const transformed = transformStationsArray(response.data?.data || []);

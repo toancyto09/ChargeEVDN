@@ -125,16 +125,6 @@ export default function AIRecommendFloatingTab({
                           </span>
                         ))}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1.5">
-                      {station.distance !== undefined ? (
-                        <>{station.distance.toFixed(1)} km • </>
-                      ) : null}
-                      Sạc ước tính{' '}
-                      {station.chargeTimeMinutes
-                        ? station.chargeTimeMinutes
-                        : '--'}{' '}
-                      phút
-                    </div>
                   </div>
                 ))}
                 {recommendations.length > 5 && (
