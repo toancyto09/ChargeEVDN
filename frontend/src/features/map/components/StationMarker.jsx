@@ -1,8 +1,8 @@
 import { Marker, Popup } from 'react-leaflet';
 import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
-import { MapPin, Star, Zap, Clock, DollarSign, Route, Info } from 'lucide-react';
-import { calculateDistance, formatDistance, estimateDrivingTime } from '../utils/navigation';
+import { MapPin, Star, Zap, Clock, DollarSign, Route, Info, Navigation as NavigationIcon } from 'lucide-react';
+import { calculateDistance, formatDistance, estimateDrivingTime, openNavigation } from '../utils/navigation';
 
 // Create custom icon with highlight support
 const createCustomIcon = (provider, isHighlighted) => {
@@ -130,7 +130,7 @@ export default function StationMarker({
             <div className="flex items-center justify-between">
               <span className="text-gray-600">Giá điện</span>
               <span className="font-semibold text-emerald-600">
-                {station.price?.toLocaleString('vi-VN')} đ/kWh
+                {station.price ? Math.round(station.price).toLocaleString('vi-VN') : '0'} đ/kWh
               </span>
             </div>
             {userLocation && (
@@ -144,34 +144,54 @@ export default function StationMarker({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
-            {/* Show Route Button */}
+          <div className="space-y-2">
+            {/* Row 1: Navigation buttons */}
             {userLocation && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onShowRoute) {
-                    onShowRoute(station);
-                  }
-                }}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors"
-                title="Xem đường đi"
-              >
-                <Route className="w-4 h-4" />
-                Đường đi
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                {/* Show Route Button (Leaflet) */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onShowRoute) {
+                      onShowRoute(station);
+                    }
+                  }}
+                  className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg"
+                  title="Xem đường đi trên bản đồ"
+                >
+                  <Route className="w-4 h-4" />
+                  <span>Xem đường</span>
+                </button>
+
+                {/* Navigate Button (Google Maps) */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openNavigation(
+                      userLocation,
+                      { lat: position[0], lng: position[1] },
+                      station.name
+                    );
+                  }}
+                  className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg"
+                  title="Dẫn đường với Google Maps"
+                >
+                  <NavigationIcon className="w-4 h-4" />
+                  <span>Dẫn đường</span>
+                </button>
+              </div>
             )}
 
-            {/* Details Button */}
+            {/* Row 2: Details button */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/stations/${station.id || station.id_tram}`);
               }}
-              className={`${userLocation ? 'flex-1' : 'w-full'} flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white py-2 rounded-lg text-sm font-medium transition-all`}
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg"
             >
               <Info className="w-4 h-4" />
-              Chi tiết
+              <span>Xem chi tiết</span>
             </button>
           </div>
         </div>

@@ -263,7 +263,7 @@ function StationCard({ station, onEdit, onDelete, onView, onManageConnectors, on
       <div className="flex items-center gap-2 text-sm text-gray-700 mb-4 p-3 bg-gray-50 rounded-lg">
         <DollarSign className="w-4 h-4 text-gray-500" />
         <span className="font-semibold">
-          {parseFloat(station.gia_kwh || 0).toLocaleString('vi-VN')} đ/kWh
+          {Math.round(station.gia_kwh || 0).toLocaleString('vi-VN')} đ/kWh
         </span>
       </div>
 

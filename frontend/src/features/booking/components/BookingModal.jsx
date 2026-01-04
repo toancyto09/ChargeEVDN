@@ -359,7 +359,7 @@ export default function BookingModal({ isOpen, onClose, station, connector, vehi
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Giá:</span>
                 <span className="font-semibold text-green-600">
-                  {station?.gia_kwh?.toLocaleString('vi-VN')} đ/kWh
+                  {Math.round(station?.gia_kwh || 0).toLocaleString('vi-VN')} đ/kWh
                 </span>
               </div>
             </div>

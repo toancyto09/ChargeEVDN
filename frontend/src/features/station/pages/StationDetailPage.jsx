@@ -212,7 +212,7 @@ export default function StationDetailPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-6 bg-gray-50/50">
             <div className="text-center p-3 bg-white rounded-xl border border-gray-100">
               <div className="text-2xl sm:text-3xl font-bold text-emerald-600">
-                {station.gia_kwh?.toLocaleString('vi-VN')}
+                {Math.round(station.gia_kwh || 0).toLocaleString('vi-VN')}
               </div>
               <div className="text-xs text-gray-600 mt-1">đ/kWh</div>
             </div>
@@ -230,7 +230,7 @@ export default function StationDetailPage() {
             </div>
             <div className="text-center p-3 bg-white rounded-xl border border-gray-100">
               <div className="text-2xl sm:text-3xl font-bold text-purple-600">
-                {station.phi_cho_phut > 0 ? station.phi_cho_phut?.toLocaleString('vi-VN') : '0'}
+                {station.phi_cho_phut > 0 ? Math.round(station.phi_cho_phut).toLocaleString('vi-VN') : '0'}
               </div>
               <div className="text-xs text-gray-600 mt-1">đ/phút chờ</div>
             </div>

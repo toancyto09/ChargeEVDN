@@ -73,7 +73,7 @@ export function StationCard({
               )}
               <span>•</span>
               <DollarSign size={14} className="flex-shrink-0" />
-              <span>{station.price ? station.price.toLocaleString('vi-VN') : '--'}đ/kWh</span>
+              <span>{station.price ? Math.round(station.price).toLocaleString('vi-VN') : '--'}đ/kWh</span>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
@@ -188,7 +188,7 @@ export function StationCard({
           <div className="flex items-center gap-1.5 text-sm text-gray-700">
             <DollarSign size={16} className="text-emerald-600" />
             <span className="font-semibold">
-              {station.price ? station.price.toLocaleString('vi-VN') : '--'}đ
+              {station.price ? Math.round(station.price).toLocaleString('vi-VN') : '--'}đ
             </span>
             <span className="text-gray-500">/kWh</span>
           </div>
