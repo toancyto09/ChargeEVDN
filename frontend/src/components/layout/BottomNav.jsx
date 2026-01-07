@@ -30,7 +30,7 @@ export default function BottomNav() {
     {
       path: '/dashboard',
       icon: Home,
-      label: 'Home',
+      label: 'Trang chủ',
     },
     {
       path: '/bookings',

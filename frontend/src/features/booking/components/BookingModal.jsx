@@ -19,9 +19,12 @@ export default function BookingModal({ isOpen, onClose, station, connector, vehi
 
   useEffect(() => {
     if (isOpen) {
-      // Set default date to TODAY (not tomorrow)
+      // Set default date to TODAY using LOCAL timezone (not UTC)
       const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${year}-${month}-${day}`;
       setSelectedDate(todayStr);
       
       // Set default time to next available slot (30 min from now)
@@ -392,11 +395,14 @@ export default function BookingModal({ isOpen, onClose, station, connector, vehi
                   setSelectedDate(e.target.value);
                   updateEndTime(e.target.value, selectedTime, duration);
                 }}
-                min={new Date().toISOString().split('T')[0]}
+                min={(() => {
+                  const today = new Date();
+                  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                })()}
                 max={(() => {
                   const maxTime = new Date();
                   maxTime.setHours(maxTime.getHours() + 6);
-                  return maxTime.toISOString().split('T')[0];
+                  return `${maxTime.getFullYear()}-${String(maxTime.getMonth() + 1).padStart(2, '0')}-${String(maxTime.getDate()).padStart(2, '0')}`;
                 })()}
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
