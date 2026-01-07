@@ -18,7 +18,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Ensure upload directory exists
-const uploadDir = path.join(
+const uploadDir = path.resolve(
   __dirname,
   '../../public',
   UPLOAD_CONFIG.UPLOAD_DIR
@@ -34,7 +34,7 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     // Generate unique filename: userId_timestamp_originalname
-    const userId = req.user?.id || 'guest';
+    const userId = req.user?.id_nguoi_dung || req.user?.userId || req.user?.id || 'guest';
     const timestamp = Date.now();
     const ext = path.extname(file.originalname);
     const nameWithoutExt = path.basename(file.originalname, ext);

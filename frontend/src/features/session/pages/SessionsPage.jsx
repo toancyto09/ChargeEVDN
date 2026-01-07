@@ -5,6 +5,7 @@ import { Zap, AlertCircle, Filter } from 'lucide-react';
 import { sessionAPI } from '../../../services/api';
 import PageLayout from '../../../components/layout/PageLayout';
 import ChargingSessionCard from '../components/ChargingSessionCard';
+import RatingModal from '../../rating/components/RatingModal';
 
 /**
  * SessionsPage
@@ -16,6 +17,10 @@ export default function SessionsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // 'all', 'dang_sac', 'hoan_thanh'
   const [showFilter, setShowFilter] = useState(false);
+
+  // Rating State
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [selectedSessionForRating, setSelectedSessionForRating] = useState(null);
 
   useEffect(() => {
     loadSessions();
@@ -40,6 +45,16 @@ export default function SessionsPage() {
 
   const handleViewDetails = (session) => {
     navigate(`/sessions/${session.id_phien_sac}`);
+  };
+
+  const handleRateSession = (session) => {
+    setSelectedSessionForRating(session);
+    setShowRatingModal(true);
+  };
+
+  const handleRatingSuccess = (updatedSession) => {
+    // Reload sessions to update "Rated" status if needed
+    loadSessions();
   };
 
   const filterOptions = [
@@ -135,12 +150,25 @@ export default function SessionsPage() {
                 key={session.id_phien_sac}
                 session={session}
                 onViewDetails={handleViewDetails}
+                onRate={handleRateSession}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Rating Modal */}
+      {selectedSessionForRating && (
+        <RatingModal
+          isOpen={showRatingModal}
+          onClose={() => {
+            setShowRatingModal(false);
+            setSelectedSessionForRating(null);
+          }}
+          booking={selectedSessionForRating}
+          onRatingSuccess={handleRatingSuccess}
+        />
+      )}
     </PageLayout>
   );
 }
-

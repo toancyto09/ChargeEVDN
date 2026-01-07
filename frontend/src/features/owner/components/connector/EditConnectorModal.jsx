@@ -180,11 +180,20 @@ export default function EditConnectorModal({
             >
               <option value="">-- Chọn loại cổng --</option>
               {connectorTypes.map((type) => (
-                <option key={type.id_loai_cong} value={type.id_loai_cong}>
-                  {type.ma_cong} {type.mo_ta ? `- ${type.mo_ta}` : ''}
+                <option 
+                  key={type.id_loai_cong} 
+                  value={type.id_loai_cong}
+                  title={type.mo_ta}
+                >
+                  {type.ma_cong}
                 </option>
               ))}
             </select>
+            {formData.id_loai_cong && (
+              <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
+                <span className="font-medium">Mô tả:</span> {connectorTypes.find(t => t.id_loai_cong === parseInt(formData.id_loai_cong))?.mo_ta}
+              </div>
+            )}
             {errors.id_loai_cong && (
               <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
                 <AlertCircle className="w-4 h-4" />

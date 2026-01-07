@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Zap, Clock, Battery, DollarSign, MapPin, Calendar } from 'lucide-react';
+import { Calendar, Clock, Battery, Zap, MapPin, Star } from 'lucide-react';
 
 /**
  * ChargingSessionCard Component
  * Displays a charging session with real-time monitoring
  */
-export default function ChargingSessionCard({ session, onViewDetails }) {
+export default function ChargingSessionCard({ session, onViewDetails, onRate }) {
   const [duration, setDuration] = useState('');
   const [isActive, setIsActive] = useState(session.trang_thai === 'dang_sac');
 
@@ -200,12 +200,40 @@ export default function ChargingSessionCard({ session, onViewDetails }) {
 
         {/* View Details Button */}
         {onViewDetails && (
-          <button
-            onClick={() => onViewDetails(session)}
-            className="w-full mt-3 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors text-sm"
-          >
-            Xem chi tiết
-          </button>
+          <div className="flex gap-3 mt-4">
+            {onViewDetails && (
+              <button
+                onClick={() => onViewDetails(session)}
+                className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors text-sm"
+              >
+                Xem chi tiết
+              </button>
+            )}
+            
+            {session.trang_thai === 'hoan_thanh' && onRate && (
+              <button
+                onClick={() => onRate(session)}
+                disabled={session.da_danh_gia}
+                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors text-sm flex items-center justify-center gap-2 ${
+                  session.da_danh_gia
+                    ? 'bg-gray-100 text-gray-500 cursor-default'
+                    : 'bg-yellow-500 hover:bg-yellow-600 text-white shadow-sm'
+                }`}
+              >
+                {session.da_danh_gia ? (
+                  <>
+                    <Star className="w-4 h-4 fill-current text-yellow-500" />
+                    <span className="text-gray-600">Đã đánh giá</span>
+                  </>
+                ) : (
+                  <>
+                    <Star className="w-4 h-4" />
+                    Đánh giá
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -227,5 +255,6 @@ ChargingSessionCard.propTypes = {
     payment_status: PropTypes.string,
   }).isRequired,
   onViewDetails: PropTypes.func,
+  onRate: PropTypes.func,
 };
 

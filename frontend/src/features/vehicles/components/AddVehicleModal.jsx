@@ -124,11 +124,21 @@ export default function AddVehicleModal({ isOpen, onClose, onSubmit, connectorTy
             >
               <option value="">-- Chọn loại cổng sạc --</option>
               {connectorTypes.map(connector => (
-                <option key={connector.id_loai_cong} value={connector.id_loai_cong}>
-                  {connector.ma_cong} {connector.mo_ta && `- ${connector.mo_ta}`}
+                <option 
+                  key={connector.id_loai_cong} 
+                  value={connector.id_loai_cong}
+                  title={connector.mo_ta}
+                >
+                  {connector.ma_cong}
                 </option>
               ))}
             </select>
+            {/* Hiển thị mô tả đầy đủ bên dưới */}
+            {formData.id_loai_cong && (
+              <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
+                <span className="font-medium">Mô tả:</span> {connectorTypes.find(c => c.id_loai_cong === parseInt(formData.id_loai_cong))?.mo_ta}
+              </div>
+            )}
           </div>
 
           {/* Hãng xe */}
