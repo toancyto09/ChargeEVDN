@@ -1,6 +1,7 @@
 import express from 'express';
 import paymentController from './payment.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
+import { auditLog } from '../../middlewares/auditLog.middleware.js';
 
 const router = express.Router();
 
@@ -11,9 +12,10 @@ const router = express.Router();
  */
 
 // Create payment from session (requires authentication)
-router.post('/create', authenticateToken, paymentController.createPayment);
+router.post('/create', authenticateToken, auditLog.paymentCreate, paymentController.createPayment);
 
 // VNPay callback (no authentication required - called by VNPay)
+// This endpoint handles both success and failure automatically
 router.get('/vnpay/callback', paymentController.handleVNPayCallback);
 
 // Get payment by session ID (requires authentication)

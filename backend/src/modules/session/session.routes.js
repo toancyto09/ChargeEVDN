@@ -1,6 +1,7 @@
 import express from 'express';
 import sessionController from './session.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
+import { auditLog } from '../../middlewares/auditLog.middleware.js';
 
 const router = express.Router();
 
@@ -17,13 +18,13 @@ router.get('/', authenticateToken, sessionController.getUserSessions);
 router.get('/unpaid', authenticateToken, sessionController.getUnpaidSessions);
 
 // Check-in via QR code (requires authentication)
-router.post('/checkin-qr', authenticateToken, sessionController.checkInWithQR);
+router.post('/checkin-qr', authenticateToken, auditLog.sessionStart, sessionController.checkInWithQR);
 
 // Start a charging session (requires authentication)
-router.post('/start', authenticateToken, sessionController.startSession);
+router.post('/start', authenticateToken, auditLog.sessionStart, sessionController.startSession);
 
 // Finish a charging session (requires authentication)
-router.post('/:id/finish', authenticateToken, sessionController.finishSession);
+router.post('/:id/finish', authenticateToken, auditLog.sessionEnd, sessionController.finishSession);
 
 // Get session details by ID (requires authentication)
 router.get('/:id', authenticateToken, sessionController.getSessionById);

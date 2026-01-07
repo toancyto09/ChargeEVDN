@@ -12,8 +12,36 @@ class AuditLogService {
    */
   async createLog({ userId, action, details = {}, req = null }) {
     try {
-      // Extract IP and user agent if request is provided
-      const ipAddress = req?.ip || req?.connection?.remoteAddress || null;
+      // Extract REAL IP even behind proxy/nginx
+      let ipAddress = null;
+      
+      if (req) {
+        // Priority 1: X-Forwarded-For (most common proxy header)
+        const forwardedFor = req.headers['x-forwarded-for'];
+        if (forwardedFor) {
+          // X-Forwarded-For can contain multiple IPs: "client, proxy1, proxy2"
+          // Take the first one (original client IP)
+          ipAddress = forwardedFor.split(',')[0].trim();
+        } 
+        // Priority 2: X-Real-IP (Nginx specific)
+        else if (req.headers['x-real-ip']) {
+          ipAddress = req.headers['x-real-ip'];
+        }
+        // Priority 3: CF-Connecting-IP (Cloudflare)
+        else if (req.headers['cf-connecting-ip']) {
+          ipAddress = req.headers['cf-connecting-ip'];
+        }
+        // Priority 4: Direct connection IP (no proxy)
+        else {
+          ipAddress = req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress;
+        }
+        
+        // Clean IPv6 localhost to IPv4 for readability
+        if (ipAddress === '::1' || ipAddress === '::ffff:127.0.0.1') {
+          ipAddress = '127.0.0.1';
+        }
+      }
+      
       const userAgent = req?.headers['user-agent'] || null;
 
       // Merge IP and user agent into details

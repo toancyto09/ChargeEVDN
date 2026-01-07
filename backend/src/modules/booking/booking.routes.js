@@ -1,6 +1,7 @@
 import express from 'express';
 import bookingController from './booking.controller.js';
 import { authenticateToken } from '../../middlewares/auth.middleware.js';
+import { auditLog } from '../../middlewares/auditLog.middleware.js';
 
 const router = express.Router();
 
@@ -13,7 +14,7 @@ const router = express.Router();
 router.get('/connector/:id/slots', authenticateToken, bookingController.getAvailableSlots);
 
 // Create a new booking
-router.post('/', authenticateToken, bookingController.createBooking);
+router.post('/', authenticateToken, auditLog.bookingCreate, bookingController.createBooking);
 
 // Get user's bookings
 router.get('/', authenticateToken, bookingController.getUserBookings);
@@ -25,7 +26,7 @@ router.get('/:id', authenticateToken, bookingController.getBookingById);
 router.post('/:id/extend', authenticateToken, bookingController.extendBooking);
 
 // Cancel booking
-router.delete('/:id', authenticateToken, bookingController.cancelBooking);
+router.delete('/:id', authenticateToken, auditLog.bookingCancel, bookingController.cancelBooking);
 
 export default router;
 
