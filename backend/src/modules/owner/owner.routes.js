@@ -4,6 +4,7 @@ import connectorRoutes from './connector/owner.connector.routes.js';
 import bookingRoutes from './booking/owner.booking.routes.js';
 import sessionRoutes from './session/owner.session.routes.js';
 import ratingRoutes from './rating/owner.rating.routes.js';
+import companyRoutes from './company/owner.company.routes.js';
 
 const router = express.Router();
 
@@ -26,5 +27,8 @@ router.use('/sessions', sessionRoutes);
 
 // Rating management routes
 router.use('/ratings', ratingRoutes);
+
+// Company profile routes
+router.use('/company', companyRoutes);
 
 export default router;

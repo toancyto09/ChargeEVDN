@@ -29,11 +29,13 @@ import PaymentFailedPage from './features/payments/pages/PaymentFailedPage';
 import PaymentHistoryPage from './features/payments/pages/PaymentHistoryPage';
 import { ActiveSessionPage, SessionsPage, QRCheckinPage } from './features/session/pages';
 import { OwnerDashboard, OwnerStationsPage, OwnerStationDetailPage, OwnerStationWorkspacePage, OwnerBookingsPage } from './features/owner/pages';
+import CompanyProfilePage from './features/owner/pages/CompanyProfilePage';
 import { OwnerStationProvider } from './features/owner/contexts/OwnerStationContext';
 import StatisticsPage from './features/statistics/pages/StatisticsPage';
 import AdminDashboard from './features/admin/pages/AdminDashboard';
 import StationApprovalPage from './features/admin/pages/StationApprovalPage';
 import UserManagementPage from './features/admin/pages/UserManagementPage';
+import CompanyManagementPage from './features/admin/pages/CompanyManagementPage';
 import AdminAnalyticsPage from './features/admin/pages/AdminAnalyticsPage';
 import AdminAuditLogPage from './features/admin/pages/AdminAuditLogPage';
 import BottomNav from './components/layout/BottomNav';
@@ -372,6 +374,14 @@ function AppContent() {
               </OwnerRoute>
             } 
           />
+          <Route 
+            path="/owner/company" 
+            element={
+              <OwnerRoute>
+                <CompanyProfilePage />
+              </OwnerRoute>
+            } 
+          />
 
           {/* Admin routes - ADMIN ONLY */}
           <Route 
@@ -385,6 +395,10 @@ function AppContent() {
           <Route 
             path="/admin/users" 
             element={<UserManagementPage />}
+          />
+          <Route 
+            path="/admin/companies" 
+            element={<CompanyManagementPage />}
           />
           <Route 
             path="/admin/analytics" 

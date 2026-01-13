@@ -181,6 +181,10 @@ export const ownerAPI = {
   getRatings: (params) => api.get('/api/owner/ratings', { params }),
   getRatingStats: (params) => api.get('/api/owner/ratings/stats', { params }),
   getRatingDetail: (id) => api.get(`/api/owner/ratings/${id}`),
+  
+  // Company Profile
+  getCompany: () => api.get('/api/owner/company-profile'),
+  updateCompany: (data) => api.put('/api/owner/company-profile', data),
 };
 
 // Admin API
@@ -202,6 +206,16 @@ export const adminAPI = {
   changeUserRole: (id, role) => api.patch(`/api/admin/users/${id}/role`, { role }),
   resetUserPassword: (id) => api.post(`/api/admin/users/${id}/reset-password`),
   deleteUser: (id) => api.delete(`/api/admin/users/${id}`),
+
+  // Companies
+  getCompanies: (params) => api.get('/api/admin/companies', { params }),
+  getCompanyStats: () => api.get('/api/admin/companies/stats'),
+  getCompanyDetail: (id) => api.get(`/api/admin/companies/${id}`),
+  createCompany: (data) => api.post('/api/admin/companies', data),
+  updateCompany: (id, data) => api.put(`/api/admin/companies/${id}`, data),
+  approveCompany: (id) => api.post(`/api/admin/companies/${id}/approve`),
+  rejectCompany: (id) => api.post(`/api/admin/companies/${id}/reject`),
+  deleteCompany: (id) => api.delete(`/api/admin/companies/${id}`),
 
   // Analytics
   getAnalyticsOverview: () => api.get('/api/admin/analytics/overview'),

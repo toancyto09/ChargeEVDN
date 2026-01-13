@@ -3,6 +3,7 @@ import stationRoutes from './station/admin.station.routes.js';
 import userRoutes from './user/admin.user.routes.js';
 import analyticsRoutes from './analytics/admin.analytics.routes.js';
 import auditLogRoutes from './auditLog/admin.auditLog.routes.js';
+import companyRoutes from './company/admin.company.routes.js';
 
 const router = express.Router();
 
@@ -22,5 +23,8 @@ router.use('/analytics', analyticsRoutes);
 
 // Audit log routes
 router.use('/audit-logs', auditLogRoutes);
+
+// Company management routes
+router.use('/companies', companyRoutes);
 
 export default router;

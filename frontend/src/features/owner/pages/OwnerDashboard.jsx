@@ -129,7 +129,7 @@ export default function OwnerDashboard() {
             {/* Action Buttons */}
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate('/profile')}
+                onClick={() => navigate('/owner/company')}
                 className="flex items-center gap-2 px-4 py-2.5 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white rounded-lg transition-all border border-white/20 hover:border-white/40"
               >
                 <Settings size={18} />
