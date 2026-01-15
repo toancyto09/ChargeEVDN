@@ -85,8 +85,20 @@ export default function DashboardPage() {
         setMainVehicle(main);
       }
 
+      // Load bookings count
+      const bookingsResponse = await fetch('http://localhost:8080/api/bookings', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const bookingsData = await bookingsResponse.json();
+      
+      if (bookingsData.success) {
+        setStats(prev => ({
+          ...prev,
+          bookings: bookingsData.data.length,
+        }));
+      }
+
       // TODO: Load other stats when APIs are ready
-      // - Bookings count
       // - Nearby stations count
       // - Reviews count
     } catch (error) {

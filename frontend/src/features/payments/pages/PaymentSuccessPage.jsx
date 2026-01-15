@@ -377,7 +377,7 @@ const PaymentSuccessPage = () => {
               </div>
 
               {/* Quick Actions */}
-              <div className="bg-white rounded-3xl shadow-xl p-6">
+              {/* <div className="bg-white rounded-3xl shadow-xl p-6">
                 <h4 className="font-bold mb-4">Thao tác nhanh</h4>
                 <div className="space-y-3">
                   <button
@@ -395,7 +395,7 @@ const PaymentSuccessPage = () => {
                     Chia sẻ
                   </button>
                 </div>
-              </div>
+              </div> */}
 
               {/* Rating Prompt */}
               <div className="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-3xl p-6 text-white text-center">

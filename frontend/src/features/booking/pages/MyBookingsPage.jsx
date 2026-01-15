@@ -588,17 +588,6 @@ function BookingCard({
           </button>
         )}
 
-        {/* Rating button - only for completed bookings */}
-        {booking.trang_thai === 'hoan_thanh' && !booking.da_danh_gia && (
-          <button
-            onClick={() => onRate(booking)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-yellow-50 hover:bg-yellow-100 text-yellow-600 rounded-lg font-medium text-sm transition-colors"
-          >
-            <Star className="w-4 h-4" />
-            Đánh giá
-          </button>
-        )}
-
         {canCancel && (
           <button
             onClick={() => onCancel(booking.id_dat_cho)}

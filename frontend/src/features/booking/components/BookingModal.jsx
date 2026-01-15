@@ -442,16 +442,16 @@ export default function BookingModal({ isOpen, onClose, station, connector, vehi
               </label>
               <input
                 type="range"
-                min="0.5"
-                max="6"
-                step="0.5"
+                min="0.25"
+                max="1"
+                step="0.25"
                 value={duration}
                 onChange={handleDurationChange}
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
               />
               <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>30 phút</span>
-                <span>6 giờ</span>
+                <span>15 phút</span>
+                <span>1 giờ</span>
               </div>
             </div>
 

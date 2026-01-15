@@ -46,10 +46,10 @@ export default function AIRecommendFloatingTab({
           
           {/* Panel - Highest z-index to float above everything */}
           <div
-            className="fixed left-0 right-0 bottom-20 md:left-auto md:right-16 md:bottom-auto md:top-[calc(50%-140px)] w-full md:w-[420px] bg-white border-2 border-emerald-100 rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden animate-slidein z-[1003] flex flex-col"
+            className="fixed left-0 right-0 bottom-0 md:left-auto md:right-16 md:bottom-auto md:top-[calc(50%-140px)] w-full md:w-[420px] bg-white border-2 border-emerald-100 rounded-t-3xl md:rounded-2xl shadow-2xl overflow-hidden animate-slidein z-[1003] flex flex-col"
             style={{
               boxShadow: '0 -4px 32px 0 rgba(0,0,0,.1), 0 12px 32px 0 rgba(39,174,96,.15)',
-              maxHeight: 'calc(75vh - 80px)', // Mobile: safer height to avoid bottom nav
+              maxHeight: '85vh', // Full height, covering navbar
             }}
           >
             {/* Header - Fixed */}
@@ -73,7 +73,7 @@ export default function AIRecommendFloatingTab({
             </div>
 
             {/* Scrollable Content - Flex-1 to fill remaining space */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2.5" style={{ maxHeight: '70vh' }}>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2.5 pb-6">{/* Added pb-6 for bottom padding */}
             {loading ? (
               <div className="text-center py-10">
                 <div className="animate-spin w-10 h-10 border-3 border-emerald-500 border-t-transparent rounded-full mx-auto mb-3" />
@@ -99,7 +99,12 @@ export default function AIRecommendFloatingTab({
                     tabIndex={0}
                     role="button"
                     className="p-3 rounded-xl border border-emerald-50 hover:bg-emerald-50/70 active:bg-emerald-100 transition cursor-pointer focus:ring-2 focus:ring-emerald-200 focus:outline-none"
-                    onClick={() => onStationClick && onStationClick(station)}
+                    onClick={() => {
+                      if (onStationClick) {
+                        onStationClick(station);
+                      }
+                      setOpen(false); // Close modal after selecting
+                    }}
                   >
                     <div className="flex justify-between items-start mb-1">
                       <div className="font-semibold text-base text-gray-900 truncate flex-1">

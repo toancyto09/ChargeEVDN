@@ -368,6 +368,37 @@ export default function MapPage() {
                 />
               </div>
             )}
+            
+            {/* Search Results Dropdown - Mobile */}
+            {searchTerm && filteredStations.length > 0 && (
+              <div className="mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[60vh] overflow-y-auto">
+                <div className="p-3 border-b bg-gray-50">
+                  <p className="text-sm text-gray-600">
+                    Tìm thấy <span className="font-semibold text-emerald-600">{filteredStations.length}</span> kết quả
+                  </p>
+                </div>
+                <div className="divide-y">
+                  {filteredStations.slice(0, 10).map((station) => (
+                    <button
+                      key={station.id}
+                      onClick={() => {
+                        handleStationClick(station);
+                        setSearchTerm(''); // Clear search after selection
+                      }}
+                      className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
+                    >
+                      <h3 className="font-semibold text-gray-900 mb-1">{station.name}</h3>
+                      <p className="text-sm text-gray-600 line-clamp-1">{station.address}</p>
+                      {station.distance && (
+                        <p className="text-xs text-emerald-600 mt-1">
+                          📍 {station.distance} km
+                        </p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Map - Full screen with relative positioning */}
@@ -389,8 +420,8 @@ export default function MapPage() {
             />
           </div>
 
-          {/* Bottom Sheet - AI gợi ý đã tách riêng thành floating tab */}
-          <BottomSheet snapPoints={[0.15, 0.5, 0.9]}>
+          {/* Bottom Sheet - Removed, using search dropdown instead */}
+          {/* <BottomSheet snapPoints={[0.15, 0.5, 0.9]}>
             <StationList
               stations={filteredStations}
               onStationClick={handleStationClick}
@@ -399,7 +430,7 @@ export default function MapPage() {
               onSortChange={setSortBy}
               userLocation={userLocation}
             />
-          </BottomSheet>
+          </BottomSheet> */}
 
           {/* Filter Modal - Placed last to ensure highest stacking */}
           {showFilters && (
