@@ -523,6 +523,21 @@ function BookingCard({
           </p>
         </div>
 
+        {/* Connector Location - IMPORTANT FOR USER TO FIND THE RIGHT CHARGER */}
+        {booking.ma_cong_tram && (
+          <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3 -mx-1">
+            <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-lg">📍</span>
+            </div>
+            <div>
+              <p className="text-xs text-amber-700 font-medium">Vị trí trụ sạc</p>
+              <p className="text-sm font-bold text-amber-900">
+                Trụ: {booking.ma_cong_tram}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Cost */}
         {booking.uoc_tinh_chi_phi && (
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mt-3">

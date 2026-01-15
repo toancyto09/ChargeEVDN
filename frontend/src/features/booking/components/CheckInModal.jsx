@@ -77,6 +77,17 @@ export default function CheckInModal({ isOpen, onClose, booking, onCheckInSucces
                 {booking.loai_cong} - {booking.cong_suat_kwh}kW
               </div>
               
+              {/* Hiển thị mã trụ để user biết đỗ xe vào đúng chỗ */}
+              {booking.ma_cong_tram && (
+                <>
+                  <div className="text-gray-600">Vị trí trụ:</div>
+                  <div className="font-bold text-right text-amber-600 flex items-center justify-end gap-1">
+                    <span>📍</span>
+                    <span>{booking.ma_cong_tram}</span>
+                  </div>
+                </>
+              )}
+              
               <div className="text-gray-600">Thời gian:</div>
               <div className="font-semibold text-right">
                 {new Date(booking.thoi_gian_bat_dau).toLocaleString('vi-VN', {
