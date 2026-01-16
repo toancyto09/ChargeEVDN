@@ -469,12 +469,21 @@ function BookingCard({
   const duration =
     Math.round(((endTime - startTime) / (1000 * 60 * 60)) * 10) / 10;
 
-  // ✅ FIX: Check if user can start charging
+  // ✅ Check if user can start charging
   // Window: startTime - 15 phút đến startTime + 15 phút
   const canStartCharging =
     booking.trang_thai === 'da_xac_nhan' &&
     now >= new Date(startTime.getTime() - 15 * 60 * 1000) &&
-    now <= new Date(startTime.getTime() + 15 * 60 * 1000);  // ✅ Chỉ 15p sau start
+    now <= new Date(startTime.getTime() + 15 * 60 * 1000);
+
+  // ✅ NEW: Check if user can extend booking (thông minh hơn)
+  // Cho phép gia hạn khi:
+  // 1. Sắp đến giờ (15p trước) hoặc đã quá giờ một chút (30p sau)
+  // 2. Chưa check-in (vẫn đang confirmed)
+  const canExtendBooking =
+    booking.trang_thai === 'da_xac_nhan' &&
+    now >= new Date(startTime.getTime() - 15 * 60 * 1000) && // Từ 15p trước giờ hẹn
+    now <= new Date(startTime.getTime() + 30 * 60 * 1000);   // Đến 30p sau giờ hẹn
 
   return (
     <div className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden border border-gray-100">
@@ -585,18 +594,19 @@ function BookingCard({
         {canStartCharging && (
           <button
             onClick={() => onStartCharging(booking)}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg font-medium text-sm transition-all shadow-md hover:shadow-lg"
+            className="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg font-medium text-sm transition-all shadow-md hover:shadow-lg"
           >
             <Play className="w-4 h-4" />
             Bắt đầu sạc
           </button>
         )}
 
-        {/* Extend button - only for confirmed bookings */}
-        {booking.trang_thai === 'da_xac_nhan' && !canStartCharging && (
+        {/* Extend button - NEW LOGIC: Hiển thị khi sắp hết giờ hoặc đã muộn một chút */}
+        {canExtendBooking && (
           <button
             onClick={() => onExtend(booking)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-green-50 hover:bg-green-100 text-green-600 rounded-lg font-medium text-sm transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg font-medium text-sm transition-colors"
+            title="Gia hạn thêm 15 phút nếu bạn đang trên đường đến"
           >
             <Timer className="w-4 h-4" />
             Gia hạn
