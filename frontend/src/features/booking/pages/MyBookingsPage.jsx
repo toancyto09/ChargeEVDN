@@ -574,17 +574,22 @@ function BookingCard({
         )}
 
         {/* Cost */}
-        {booking.uoc_tinh_chi_phi && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mt-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">Ước tính chi phí:</span>
-              <span className="text-lg font-bold text-emerald-700">
-                ~{parseFloat(booking.uoc_tinh_chi_phi).toLocaleString('vi-VN')}{' '}
-                đ
-              </span>
-            </div>
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mt-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-700">Ước tính chi phí:</span>
+            <span className="text-lg font-bold text-emerald-700">
+              {booking.uoc_tinh_chi_phi && parseFloat(booking.uoc_tinh_chi_phi) > 0 ? (
+                <>
+                  ~{parseFloat(booking.uoc_tinh_chi_phi).toLocaleString('vi-VN')} đ
+                </>
+              ) : (
+                <span className="text-sm text-gray-600 font-normal italic">
+                  Tính theo thực tế
+                </span>
+              )}
+            </span>
           </div>
-        )}
+        </div>
 
         {/* Expiry Countdown */}
         {booking.het_han && booking.trang_thai === 'cho_xac_nhan' && (
