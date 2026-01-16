@@ -524,24 +524,50 @@ function BookingCard({
           </p>
         </div>
 
-        {/* Connector Info */}
-        <div className="flex items-center gap-3">
-          <Zap className="w-5 h-5 text-gray-400 flex-shrink-0" />
-          <p className="text-sm text-gray-700">
-            {booking.loai_cong} • {booking.cong_suat_kwh} kW
-          </p>
-        </div>
-
-        {/* Connector Location - IMPORTANT FOR USER TO FIND THE RIGHT CHARGER */}
-        {booking.ma_cong_tram && (
-          <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3 -mx-1">
-            <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-lg">📍</span>
+        {/* Connector Info & Location - REDESIGNED FOR CLARITY */}
+        {/* Only show detailed connector info for ACTIVE bookings (da_xac_nhan) */}
+        {booking.ma_cong_tram && booking.trang_thai === 'da_xac_nhan' && (
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl p-4 -mx-1 space-y-3">
+            {/* Header */}
+            <div className="flex items-center gap-2 pb-2 border-b border-blue-200">
+              <QrCode className="w-5 h-5 text-blue-600" />
+              <h4 className="text-sm font-bold text-blue-900">Thông tin cổng sạc của bạn</h4>
             </div>
-            <div>
-              <p className="text-xs text-amber-700 font-medium">Vị trí trụ sạc</p>
-              <p className="text-sm font-bold text-amber-900">
-                Trụ: {booking.ma_cong_tram}
+
+            {/* Connector Details Grid */}
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {/* Mã cổng */}
+              <div className="col-span-2 bg-white rounded-lg p-3 border border-blue-200">
+                <p className="text-xs text-gray-600 mb-1">Mã cổng sạc</p>
+                <p className="text-lg font-bold text-blue-900 font-mono tracking-wide">
+                  📍 {booking.ma_cong_tram}
+                </p>
+              </div>
+
+              {/* Loại cổng */}
+              <div className="bg-white rounded-lg p-3 border border-blue-200">
+                <p className="text-xs text-gray-600 mb-1">Loại cổng</p>
+                <p className="font-semibold text-gray-900">{booking.loai_cong}</p>
+              </div>
+
+              {/* Công suất */}
+              <div className="bg-white rounded-lg p-3 border border-blue-200">
+                <p className="text-xs text-gray-600 mb-1">Công suất</p>
+                <p className="font-semibold text-gray-900">
+                  <Zap className="w-3 h-3 inline mr-1 text-yellow-500" />
+                  {booking.cong_suat_kwh} kW
+                </p>
+              </div>
+            </div>
+
+            {/* Hướng dẫn */}
+            <div className="bg-blue-100 rounded-lg p-3">
+              <p className="text-xs text-blue-900 leading-relaxed">
+                <strong>💡 Khi đến trạm:</strong> Tìm cổng có gắn biển/sticker mã{' '}
+                <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-blue-300">
+                  {booking.ma_cong_tram}
+                </span>{' '}
+                → Quét QR code trên cổng đó để check-in.
               </p>
             </div>
           </div>

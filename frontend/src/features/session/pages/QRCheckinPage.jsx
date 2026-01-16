@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5Qrcode } from 'html5-qrcode';
 import { toast } from 'sonner';
-import { QrCode, Zap, MapPin, AlertCircle } from 'lucide-react';
+import { QrCode, Zap, MapPin, AlertCircle, Upload } from 'lucide-react';
 import { sessionAPI } from '../../../services/api';
 import PageLayout from '../../../components/layout/PageLayout';
 
@@ -56,13 +56,51 @@ export default function QRCheckinPage() {
   };
 
   const stopScanner = async () => {
-    if (html5QrcodeRef.current && html5QrcodeRef.current.isScanning) {
+    if (html5QrcodeRef.current) {
       try {
-        await html5QrcodeRef.current.stop();
-        html5QrcodeRef.current.clear();
+        // Check if scanner is running before stopping
+        if (html5QrcodeRef.current.isScanning) {
+          await html5QrcodeRef.current.stop();
+        }
+        await html5QrcodeRef.current.clear();
+        html5QrcodeRef.current = null;
       } catch (err) {
         console.error("Error stopping scanner:", err);
+        // Force clear even if stop fails
+        try {
+          await html5QrcodeRef.current.clear();
+          html5QrcodeRef.current = null;
+        } catch (clearErr) {
+          console.error("Error clearing scanner:", clearErr);
+        }
       }
+    }
+  };
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (processing) return;
+    setProcessing(true);
+
+    // Stop scanner while processing file
+    await stopScanner();
+
+    try {
+      const html5Qrcode = new Html5Qrcode("qr-reader-file");
+      
+      const decodedText = await html5Qrcode.scanFile(file, true);
+      
+      // Process QR code
+      await onScanSuccess(decodedText);
+      
+    } catch (err) {
+      console.error("Error scanning file:", err);
+      toast.error('Không thể đọc QR code từ ảnh. Vui lòng thử lại');
+      setProcessing(false);
+      setScanning(true);
+      startScanner();
     }
   };
 
@@ -79,7 +117,13 @@ export default function QRCheckinPage() {
       // Parse QR code data
       const qrData = JSON.parse(decodedText);
       
-      if (qrData.type !== 'station') {
+      console.log('QR Data scanned:', qrData);
+
+      // Support both NEW (connector) and OLD (station) QR codes
+      const isConnectorQR = qrData.type === 'connector_checkin';
+      const isStationQR = qrData.type === 'station_checkin' || qrData.type === 'station';
+
+      if (!isConnectorQR && !isStationQR) {
         toast.error('QR code không hợp lệ. Vui lòng quét QR code của trạm sạc');
         setProcessing(false);
         setScanning(true);
@@ -87,10 +131,22 @@ export default function QRCheckinPage() {
         return;
       }
 
-      // Call check-in API
-      const response = await sessionAPI.checkInQR({
-        station_id: qrData.station_id
-      });
+      // Call check-in API with appropriate parameter
+      let apiPayload;
+      
+      if (isConnectorQR) {
+        // NEW: Connector QR code - send connectorId directly
+        apiPayload = {
+          connectorId: qrData.connectorId
+        };
+      } else {
+        // OLD: Station QR code - send station_id (for backward compatibility)
+        apiPayload = {
+          station_id: qrData.stationId || qrData.station_id
+        };
+      }
+
+      const response = await sessionAPI.checkInQR(apiPayload);
 
       if (response.data.success) {
         const info = response.data.data;
@@ -277,6 +333,31 @@ export default function QRCheckinPage() {
           <div className="px-4 py-3 bg-gray-50 border-t text-center text-sm text-gray-600">
             Đưa QR code vào khung hình để quét
           </div>
+
+          {/* Upload QR Image Option */}
+          <div className="px-4 py-3 bg-white border-t">
+            <div className="text-center">
+              <p className="text-xs text-gray-500 mb-3">Hoặc nếu camera không hoạt động:</p>
+              <label 
+                htmlFor="qr-file-upload" 
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-medium cursor-pointer transition-colors"
+              >
+                <Upload className="w-4 h-4" />
+                Tải ảnh QR lên
+              </label>
+              <input
+                id="qr-file-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+                disabled={processing}
+              />
+            </div>
+          </div>
+
+          {/* Hidden div for file scanning */}
+          <div id="qr-reader-file" className="hidden"></div>
         </div>
 
         {/* Tips */}

@@ -222,25 +222,39 @@ class SessionController {
   }
 
   /**
-   * Check-in via QR code (Station-level)
+   * Check-in via QR code (Support both Connector and Station QR)
    * POST /api/sessions/checkin-qr
    */
   async checkInWithQR(req, res) {
     try {
-      const { station_id } = req.body;
+      const { connectorId, station_id } = req.body;
       const userId = req.user.id_nguoi_dung;
 
-      if (!station_id) {
+      // Support both NEW (connector QR) and OLD (station QR)
+      if (!connectorId && !station_id) {
         return res.status(400).json({
           success: false,
-          message: 'Thiếu thông tin station_id từ QR code'
+          message: 'Thiếu thông tin connectorId hoặc station_id từ QR code'
         });
       }
 
-      const result = await sessionService.checkInWithQR(
-        userId, 
-        parseInt(station_id)
-      );
+      let result;
+
+      if (connectorId) {
+        // NEW: Connector-level check-in (RECOMMENDED)
+        console.log(`🔲 Connector QR check-in: userId=${userId}, connectorId=${connectorId}`);
+        result = await sessionService.checkInWithQR(
+          userId, 
+          parseInt(connectorId)
+        );
+      } else {
+        // OLD: Station-level check-in (BACKWARD COMPATIBILITY)
+        console.log(`🏢 Station QR check-in (deprecated): userId=${userId}, stationId=${station_id}`);
+        result = await sessionService.checkInWithQR(
+          userId, 
+          parseInt(station_id)
+        );
+      }
 
       res.status(200).json({
         success: true,
@@ -257,7 +271,10 @@ class SessionController {
         'không đúng với đặt chỗ',
         'chưa có đặt chỗ',
         'đã được bắt đầu',
-        'đã hết hạn'
+        'đã hết hạn',
+        'Trụ sắp có người đặt chỗ',
+        'Cổng đang được sử dụng',
+        'Cổng đang bảo trì'
       ];
       
       if (userErrors.some(msg => error.message.includes(msg))) {

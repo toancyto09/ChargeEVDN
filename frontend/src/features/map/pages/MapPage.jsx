@@ -196,7 +196,12 @@ export default function MapPage() {
       return;
     }
 
-    toast.success(`Đã chọn: ${station.name}`);
+    // Dismiss previous toasts to avoid stacking
+    toast.dismiss();
+    toast.success(`Đã chọn: ${station.name}`, {
+      id: 'station-selected', // Use same ID to replace instead of stack
+      duration: 2000
+    });
   };
 
   // Handler: Show route on map

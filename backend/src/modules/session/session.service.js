@@ -8,13 +8,17 @@ import { pool } from '../../config/db.js';
 /**
  * Start a charging session from a booking
  * @param {number} bookingId - ID of the booking
+ * @param {object} existingClient - Optional: existing DB client (for transaction reuse)
  * @returns {object} Created session info
  */
-export async function startSession(bookingId) {
-  const client = await pool.connect();
+export async function startSession(bookingId, existingClient = null) {
+  const client = existingClient || await pool.connect();
+  const isExternalTransaction = !!existingClient;
   
   try {
-    await client.query('BEGIN');
+    if (!isExternalTransaction) {
+      await client.query('BEGIN');
+    }
 
     // Get booking details
     const bookingQuery = `
@@ -26,24 +30,28 @@ export async function startSession(bookingId) {
         dc.thoi_gian_bat_dau,
         dc.thoi_gian_ket_thuc,
         ts.id_tram,
-        lsg.gia_kwh,
-        lsg.phi_cho_phut
+        COALESCE(lsg.gia_kwh, 3000) as gia_kwh,
+        COALESCE(lsg.phi_cho_phut, 100) as phi_cho_phut
       FROM dat_cho dc
       JOIN cong_sac cs ON cs.id_cong_sac = dc.id_cong_sac
       JOIN tram_sac ts ON ts.id_tram = cs.id_tram
-      JOIN lich_su_gia_tram lsg ON lsg.id_tram = ts.id_tram
-      WHERE dc.id_dat_cho = $1
+      LEFT JOIN lich_su_gia_tram lsg ON lsg.id_tram = ts.id_tram
         AND lsg.trang_thai = 'active'
         AND NOW() BETWEEN lsg.hieu_luc_tu AND COALESCE(lsg.hieu_luc_den, '9999-12-31')
+      WHERE dc.id_dat_cho = $1
     `;
     
+    console.log(`🔍 startSession: Looking for booking ID = ${bookingId}`);
     const bookingResult = await client.query(bookingQuery, [bookingId]);
+    console.log(`📊 Query result rows:`, bookingResult.rows.length);
     
     if (bookingResult.rows.length === 0) {
-      throw new Error('Không tìm thấy booking hoặc giá không hợp lệ');
+      console.error(`❌ Booking ${bookingId} not found in database`);
+      throw new Error('Không tìm thấy booking');
     }
 
     const booking = bookingResult.rows[0];
+    console.log(`✅ Found booking:`, { id: booking.id_dat_cho, status: booking.trang_thai, price: booking.gia_kwh });
 
     // Check booking status
     if (booking.trang_thai !== 'cho_xac_nhan' && booking.trang_thai !== 'da_xac_nhan') {
@@ -94,13 +102,14 @@ export async function startSession(bookingId) {
       [bookingId]
     );
 
-    // Update connector status
     await client.query(
       `UPDATE cong_sac SET trang_thai = 'dang_su_dung' WHERE id_cong_sac = $1`,
       [booking.id_cong_sac]
     );
 
-    await client.query('COMMIT');
+    if (!isExternalTransaction) {
+      await client.query('COMMIT');
+    }
 
     console.log(`✅ Session started: Session #${session.id_phien_sac} for Booking #${bookingId}`);
 
@@ -114,10 +123,14 @@ export async function startSession(bookingId) {
     };
 
   } catch (error) {
-    await client.query('ROLLBACK');
+    if (!isExternalTransaction) {
+      await client.query('ROLLBACK');
+    }
     throw error;
   } finally {
-    client.release();
+    if (!isExternalTransaction) {
+      client.release();
+    }
   }
 }
 
@@ -567,8 +580,7 @@ export async function checkInWithQR(userId, connectorId) {
           trang_thai,
           uoc_tinh_kwh,
           uoc_tinh_chi_phi,
-          ma_xac_nhan,
-          ghi_chu
+          ma_xac_nhan
         ) VALUES (
           $1,
           (SELECT id_phuong_tien FROM phuong_tien WHERE id_nguoi_dung = $1 LIMIT 1),
@@ -579,8 +591,7 @@ export async function checkInWithQR(userId, connectorId) {
           'da_xac_nhan',
           0,
           0,
-          'WALKIN-' || UPPER(SUBSTRING(MD5(RANDOM()::TEXT) FROM 1 FOR 6)),
-          'Walk-in check-in (tự động tạo)'
+          'WALKIN-' || UPPER(SUBSTRING(MD5(RANDOM()::TEXT) FROM 1 FOR 6))
         )
         RETURNING *
       `;
@@ -613,9 +624,9 @@ export async function checkInWithQR(userId, connectorId) {
     );
 
     // ==========================================
-    // STEP 3: Start charging session
+    // STEP 3: Start charging session (reuse same transaction)
     // ==========================================
-    const session = await startSession(booking.id_dat_cho);
+    const session = await startSession(booking.id_dat_cho, client);
     
     await client.query('COMMIT');
 
