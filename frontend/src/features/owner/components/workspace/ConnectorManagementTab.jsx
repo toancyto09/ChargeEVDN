@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Zap } from 'lucide-react';
+import { Zap, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import { ownerAPI } from '../../../../services/api';
+import QRCodeModal from '../connector/QRCodeModal';
 
 export default function ConnectorManagementTab({ stationId }) {
   const [connectors, setConnectors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('all');
+  const [selectedConnector, setSelectedConnector] = useState(null);
+  const [showQRModal, setShowQRModal] = useState(false);
 
   useEffect(() => {
     loadConnectors();
@@ -40,6 +43,11 @@ export default function ConnectorManagementTab({ stationId }) {
       console.error('Error changing status:', error);
       toast.error(error.response?.data?.message || 'Không thể cập nhật trạng thái');
     }
+  };
+
+  const handleShowQR = (connector) => {
+    setSelectedConnector(connector);
+    setShowQRModal(true);
   };
 
   const statusConfig = {
@@ -123,21 +131,44 @@ export default function ConnectorManagementTab({ stationId }) {
                   <div>Công suất: <span className="font-medium text-gray-900">{connector.cong_suat_kwh || 0} kW</span></div>
                 </div>
 
-                {/* Status Update */}
-                {connector.trang_thai !== 'dang_su_dung' && (
-                  <select
-                    value={connector.trang_thai}
-                    onChange={(e) => handleChangeStatus(connector.id_cong_sac, e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                {/* Action Buttons */}
+                <div className="space-y-2">
+                  {/* QR Code Button */}
+                  <button
+                    onClick={() => handleShowQR(connector)}
+                    className="w-full px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
                   >
-                    <option value="trong">Trống</option>
-                    <option value="bao_tri">Bảo trì</option>
-                  </select>
-                )}
+                    <QrCode className="w-4 h-4" />
+                    Tạo QR Code
+                  </button>
+
+                  {/* Status Update */}
+                  {connector.trang_thai !== 'dang_su_dung' && (
+                    <select
+                      value={connector.trang_thai}
+                      onChange={(e) => handleChangeStatus(connector.id_cong_sac, e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="trong">Trống</option>
+                      <option value="bao_tri">Bảo trì</option>
+                    </select>
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {/* QR Code Modal */}
+      {showQRModal && selectedConnector && (
+        <QRCodeModal
+          connector={selectedConnector}
+          onClose={() => {
+            setShowQRModal(false);
+            setSelectedConnector(null);
+          }}
+        />
       )}
     </div>
   );

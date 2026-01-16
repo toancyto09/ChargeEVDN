@@ -29,8 +29,11 @@ router.get('/stations', ownerStationController.getStations);
 // Get single station
 router.get('/stations/:id', ownerStationController.getStation);
 
-// Get QR code for station
+// Get QR code for station (deprecated)
 router.get('/stations/:id/qr', ownerStationController.getStationQR);
+
+// Get QR code for specific connector (RECOMMENDED)
+router.get('/connectors/:connectorId/qr', ownerStationController.getConnectorQR);
 
 // Create new station
 router.post('/stations', ownerStationController.createStation);

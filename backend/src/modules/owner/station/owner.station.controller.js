@@ -65,7 +65,7 @@ class OwnerStationController {
   }
 
   /**
-   * Get QR Code data for station
+   * Get QR Code data for station (DEPRECATED - use getConnectorQR instead)
    * GET /api/owner/stations/:id/qr
    */
   async getStationQR(req, res) {
@@ -83,7 +83,7 @@ class OwnerStationController {
         });
       }
 
-      // Generate QR data
+      // Generate QR data (kept for backward compatibility)
       const qrData = {
         type: 'station_checkin',
         stationId: parseInt(id),
@@ -110,6 +110,97 @@ class OwnerStationController {
       res.status(500).json({
         success: false,
         message: 'Lỗi khi tạo QR code',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Get QR Code data for a specific connector (RECOMMENDED)
+   * GET /api/owner/connectors/:connectorId/qr
+   */
+  async getConnectorQR(req, res) {
+    try {
+      const userId = req.user.id || req.user.id_nguoi_dung;
+      const { connectorId } = req.params;
+
+      // Get connector details with station info and verify ownership
+      const connectorQuery = `
+        SELECT 
+          cs.id_cong_sac,
+          cs.ma_cong_tram,
+          cs.cong_suat_kwh,
+          cs.trang_thai,
+          lcs.ma_cong as loai_cong,
+          ts.id_tram,
+          ts.ten_tram,
+          ts.dia_chi,
+          dn.id_chu_so_huu
+        FROM cong_sac cs
+        JOIN tram_sac ts ON ts.id_tram = cs.id_tram
+        JOIN doanh_nghiep dn ON dn.id_doanh_nghiep = ts.id_doanh_nghiep
+        JOIN loai_cong_sac lcs ON lcs.id_loai_cong = cs.id_loai_cong
+        WHERE cs.id_cong_sac = $1
+      `;
+
+      const { pool } = await import('../../../config/db.js');
+      const result = await pool.query(connectorQuery, [connectorId]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy cổng sạc'
+        });
+      }
+
+      const connector = result.rows[0];
+
+      // Verify ownership
+      if (connector.id_chu_so_huu !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Bạn không có quyền tạo QR cho cổng sạc này'
+        });
+      }
+
+      // Generate QR data for CONNECTOR
+      const qrData = {
+        type: 'connector_checkin',
+        connectorId: parseInt(connectorId),
+        connectorCode: connector.ma_cong_tram,
+        connectorType: connector.loai_cong,
+        power: connector.cong_suat_kwh,
+        stationId: connector.id_tram,
+        stationName: connector.ten_tram,
+        address: connector.dia_chi,
+        timestamp: Date.now(),
+        version: '2.0'
+      };
+
+      res.status(200).json({
+        success: true,
+        data: {
+          qrData: JSON.stringify(qrData),
+          connector: {
+            id: connector.id_cong_sac,
+            code: connector.ma_cong_tram,
+            type: connector.loai_cong,
+            power: connector.cong_suat_kwh,
+            status: connector.trang_thai,
+            station: {
+              id: connector.id_tram,
+              name: connector.ten_tram,
+              address: connector.dia_chi
+            }
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Get connector QR error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi tạo QR code cho cổng sạc',
         error: error.message
       });
     }

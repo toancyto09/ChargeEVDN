@@ -159,6 +159,7 @@ export const ownerAPI = {
   // Connectors
   getConnectorTypes: () => api.get('/api/owner/connector-types'),
   getConnectors: (stationId) => api.get(`/api/owner/stations/${stationId}/connectors`),
+  getConnectorQR: (connectorId) => api.get(`/api/owner/connectors/${connectorId}/qr`),
   createConnector: (stationId, data) => api.post(`/api/owner/stations/${stationId}/connectors`, data),
   updateConnector: (connectorId, data) => api.put(`/api/owner/connectors/${connectorId}`, data),
   deleteConnector: (connectorId) => api.delete(`/api/owner/connectors/${connectorId}`),
