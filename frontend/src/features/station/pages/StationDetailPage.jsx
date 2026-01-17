@@ -8,6 +8,7 @@ import ConnectorList from '../components/ConnectorList';
 import { openNavigation } from '../../map/utils/navigation';
 import PageLayout from '../../../components/layout/PageLayout';
 import BookingModal from '../../booking/components/BookingModal';
+import ConnectorSelectionModal from '../../booking/components/ConnectorSelectionModal';
 import ReviewCard from '../../rating/components/ReviewCard';
 import StarRating from '../../rating/components/StarRating';
 
@@ -18,6 +19,7 @@ export default function StationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showConnectorSelection, setShowConnectorSelection] = useState(false);
   const [selectedConnector, setSelectedConnector] = useState(null);
   const [mainVehicle, setMainVehicle] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -336,32 +338,22 @@ export default function StationDetailPage() {
                   return;
                 }
                 
-                // Find connector that MATCHES vehicle type AND is available
-                const availableConn = station.connectors?.find(c => 
-                  parseInt(c.cong_trong) > 0 && 
-                  c.loai_cong === mainVehicle.ma_cong
-                );
-                
-                if (!availableConn) {
-                  // Check if station has this connector type at all
-                  const hasConnectorType = station.connectors?.some(c => c.loai_cong === mainVehicle.ma_cong);
-                  
-                  if (!hasConnectorType) {
-                    toast.error(
-                      `Trạm này không có cổng ${mainVehicle.ma_cong}. Xe của bạn cần cổng ${mainVehicle.ma_cong} để sạc.`,
-                      { duration: 5000 }
-                    );
-                  } else {
-                    toast.error(
-                      `Tất cả cổng ${mainVehicle.ma_cong} đang được sử dụng. Vui lòng thử lại sau.`,
-                      { duration: 4000 }
-                    );
-                  }
+                // Check if station has connectors
+                if (!station.connectors || station.connectors.length === 0) {
+                  toast.error('Trạm này chưa có cổng sạc nào');
                   return;
                 }
                 
-                setSelectedConnector(availableConn);
-                setShowBookingModal(true);
+                // Check if there's ANY available connector (regardless of type)
+                const hasAnyAvailable = station.connectors.some(c => parseInt(c.cong_trong) > 0);
+                
+                if (!hasAnyAvailable) {
+                  toast.error('Tất cả cổng sạc đang được sử dụng. Vui lòng thử lại sau.', { duration: 4000 });
+                  return;
+                }
+                
+                // Open connector selection modal
+                setShowConnectorSelection(true);
               }}
               className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-3 sm:py-3.5 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95"
             >
@@ -372,11 +364,27 @@ export default function StationDetailPage() {
         </div>
       </div>
 
+      {/* Connector Selection Modal */}
+      <ConnectorSelectionModal
+        isOpen={showConnectorSelection}
+        onClose={() => setShowConnectorSelection(false)}
+        connectors={station?.connectors || []}
+        vehicleConnectorType={mainVehicle?.ma_cong}
+        onSelectConnector={(connector) => {
+          setSelectedConnector(connector);
+          setShowConnectorSelection(false);
+          setShowBookingModal(true);
+        }}
+      />
+
       {/* Booking Modal */}
       {showBookingModal && selectedConnector && (
         <BookingModal
           isOpen={showBookingModal}
-          onClose={() => setShowBookingModal(false)}
+          onClose={() => {
+            setShowBookingModal(false);
+            setSelectedConnector(null);
+          }}
           station={station}
           connector={selectedConnector}
           vehicle={mainVehicle}
