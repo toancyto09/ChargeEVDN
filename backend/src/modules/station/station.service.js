@@ -211,22 +211,25 @@ export async function getStationDetail(id) {
 
     const station = stationResult.rows[0];
 
-    // Get connectors with details (only existing columns)
+    // Get connectors - INDIVIDUAL connectors, not grouped
+    // This allows users to select specific physical connectors when booking
     const connectorsQuery = `
       SELECT
+        cs.id_cong_sac,
+        cs.ma_cong_tram,
         lcs.ma_cong as loai_cong,
         lcs.mo_ta,
         cs.cong_suat_kwh,
-        COUNT(cs.id_cong_sac) as tong_cong,
-        COUNT(CASE WHEN cs.trang_thai = 'trong' THEN 1 END) as cong_trong,
-        COUNT(CASE WHEN cs.trang_thai = 'dang_su_dung' THEN 1 END) as dang_su_dung,
-        COUNT(CASE WHEN cs.trang_thai = 'bao_tri' THEN 1 END) as bao_tri,
-        MIN(CASE WHEN cs.trang_thai = 'trong' THEN cs.id_cong_sac END) as id_cong_sac
+        cs.trang_thai,
+        CASE 
+          WHEN cs.trang_thai = 'trong' THEN 1
+          ELSE 0
+        END as cong_trong,
+        1 as tong_cong
       FROM cong_sac cs
         JOIN loai_cong_sac lcs ON lcs.id_loai_cong = cs.id_loai_cong
       WHERE cs.id_tram = $1
-      GROUP BY lcs.ma_cong, lcs.mo_ta, cs.cong_suat_kwh
-      ORDER BY cs.cong_suat_kwh DESC
+      ORDER BY lcs.ma_cong, cs.ma_cong_tram
     `;
 
     const connectorsResult = await pool.query(connectorsQuery, [id]);

@@ -9,6 +9,10 @@ export default function ConnectorSelectionModal({
 }) {
   if (!isOpen) return null;
 
+  // DEBUG: Log để kiểm tra data
+  console.log('🔍 ConnectorSelectionModal - Total connectors:', connectors.length);
+  console.log('🔍 Connectors data:', connectors);
+
   // Filter và group connectors theo loại
   const groupedConnectors = connectors.reduce((acc, connector) => {
     const type = connector.loai_cong;
@@ -18,6 +22,8 @@ export default function ConnectorSelectionModal({
     acc[type].push(connector);
     return acc;
   }, {});
+
+  console.log('🔍 Grouped connectors:', groupedConnectors);
 
   return (
     <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
